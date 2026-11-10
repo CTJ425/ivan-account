@@ -1,0 +1,7 @@
+-- Whitelist the initial administrator email.
+-- Replace 'admin@example.com' with the Google account email of the system administrator.
+-- Run this once in the Supabase SQL Editor before attempting first login.
+
+insert into public.allowed_emails (email, is_admin)
+values (lower('admin@example.com'), true)
+on conflict (email) do update set is_admin = true;

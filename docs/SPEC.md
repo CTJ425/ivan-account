@@ -71,7 +71,7 @@ ledger_members
 
 category_groups
   id uuid pk, ledger_id fk, name text, kind text ('expense'|'income'),
-  sort_order int, archived_at timestamptz null
+  color text (色盤代號), sort_order int, archived_at timestamptz null
 
 categories
   id uuid pk, ledger_id fk, group_id fk -> category_groups,
@@ -107,7 +107,7 @@ recurring_rules
 帳本與成員規則：
 
 - 每位使用者首次登入時自動取得一本個人帳本（`kind = 'personal'`，只有本人是成員，不可加入其他人）。
-- 共用帳本由任一使用者建立，建立者為 owner；owner 可從已登入過的家人中加入 / 移除成員。成員可記帳、改分類、改預算；只有 owner 可改帳本名稱、管理成員、刪除帳本。
+- 共用帳本一律手動建立，系統不會自動建立或自動加入成員。共用帳本由任一使用者建立，建立者為 owner；owner 可從已登入過的家人中加入 / 移除成員。成員可記帳、改分類、改預算；只有 owner 可改帳本名稱、管理成員、刪除帳本。
 - 個人帳本的內容其他家人看不到，包含管理員（已確認）。
 - 共用帳本內所有成員可修改或刪除任何一筆交易（已確認）；每筆交易顯示記錄者。
 - App 上方有帳本切換器，記住上次使用的帳本。記帳、分類、預算、圖表都以「目前帳本」為範圍。
@@ -131,7 +131,7 @@ recurring_rules
 - 只提供 Google 登入。未登入時所有頁面導向登入頁。
 - **限制可登入的帳號**：Supabase 預設任何 Google 帳號都能註冊進這個專案。做法：在 `auth.users` 上加 `before insert` trigger，email 不在 `allowed_emails` 內就拒絕。
 - 管理員（第一位使用者，email 由 migration 的 seed 寫入白名單並標為 `is_admin`）可在設定頁新增 / 移除白名單 email。白名單上限 5 筆。
-- 從白名單移除某人時，同時停用其登入；其在共用帳本中記的交易保留。
+- 從白名單移除某人時，同時停用其登入；其在共用帳本中記的交易保留，其個人帳本也保留在資料庫中（無人可見），徹底刪除需由管理員另外執行。
 
 ### 4.2 記帳（最常用的畫面，首頁）
 
@@ -141,11 +141,27 @@ recurring_rules
 - 金額輸入用 App 內建的數字鍵盤（不依賴系統鍵盤）。
 - 分類以格狀按鈕呈現，依最近使用頻率排序 **[假設]**。
 - 首頁下方顯示今日與最近的交易列表；點一筆可編輯或刪除。
+- 編輯交易時可改到另一個帳本（記錯帳本時用）；因為分類屬於帳本，改帳本後必須重新選分類。不做帳本之間的轉帳或代墊。
+- v1 金額只輸入單一數字，不支援算式。
+
+### 4.2a 明細
+
+- 獨立的「明細」頁：依月份翻頁瀏覽目前帳本的所有交易，依日期分組並顯示每日小計。
+- 可依收入 / 支出、群組、分類篩選，可搜尋備註。
+- 點一筆可編輯或刪除。
+
+### 4.2b 導覽
+
+- 手機底部導覽五項：記帳、明細、圖表、預算、設定。
+- 分類管理、週期性項目、帳本與成員、白名單、匯出都放在「設定」之下。
+- 桌面版有獨立版面（不是放大的手機版），記帳與總覽並重；版面定義見 `DESIGN.md`。
+- 支援深色模式，跟隨系統設定，不提供手動切換。
 
 ### 4.3 分類管理
 
 - 新增、改名、排序、封存群組與分類。
 - 封存有交易的分類時提示「歷史紀錄會保留」。
+- 每個群組有一個顏色（`category_groups.color`），新增時由系統依固定色盤自動分配，可在分類管理中更換；圖表與明細用它區分群組。v1 不做圖示。
 
 ### 4.4 預算
 
@@ -253,7 +269,9 @@ recurring_rules
 - Supabase 專案 URL：`https://pysleyxwaqdomjzokntz.supabase.co`
 - Supabase publishable key：`sb_publishable_pXwvglK65TMuzEEVQ0O2fQ_5ZDMUs5j`（設計上即為公開金鑰，可放進前端與 repo；secret / `service_role` key 不得放入）
 - Supabase schema 以 migration 檔管理（`supabase/migrations/`），用 Supabase CLI 套用。
-- 環境：本機開發使用 `supabase start`（需 Docker）或直接連雲端專案 **[待決]**；正式環境一個。
+- 環境：只有一個 Supabase 雲端專案，開發與正式共用；正式給家人使用前清空測試資料一次。這台開發機記憶體不足以跑本機版 Supabase。
+- 測試：RLS 與 SQL function 的自動測試在 GitHub Actions 上以 `supabase start`（Docker）執行，不連雲端專案。
+- Migration 套用：M1 由使用者手動貼到 SQL Editor；M2 起由 `supabase db push` 套用（需要使用者在 `sbuse` 加入此專案的設定）。
 - Google Cloud Console 需建立 OAuth client，授權重新導向 URI 設為 `https://<project-ref>.supabase.co/auth/v1/callback`；Supabase Auth 的 Redirect URLs 需加入正式網域與 `http://localhost:<port>`。這些是後台操作，需由使用者本人執行。
 
 ## 8. 里程碑
@@ -282,5 +300,7 @@ recurring_rules
 已決定（2026-11-10）：家人共用最多 5 人、含個人與共用帳本；收支都做；不做付款方式；圖表用 SVG；不做離線；要做週期性項目；分類完全自訂；先用 `*.pages.dev`，日後換自有網域（換網域時需更新 Supabase Auth 的 Redirect URLs）。
 
 另已決定：v1 不做自動備份（延到 v2）；家人看不到彼此的個人帳本；共用帳本成員可修改 / 刪除他人記的交易；共用帳本可建立多本。
+
+2026-11-10 第二輪決定：新增明細頁並調整導覽；開發與正式共用資料庫、RLS 測試在 CI 執行；M2 起以 CLI 套用 migration；repo 改為 private；被移除者的個人帳本保留；可在編輯時改帳本；群組顏色自動分配可更換；深色模式跟隨系統；金額不支援算式；共用帳本手動建立。
 
 目前沒有待決事項。標為 **[假設]** 的介面細節（分類排序、預算警示門檻、週起始日）採預設值，實作後可調整。

@@ -1,7 +1,24 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/useAuth';
 
 export const Settings: React.FC = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      setSigningOut(true);
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
   return (
     <div className="page-container">
       <header className="page-header">
@@ -12,10 +29,19 @@ export const Settings: React.FC = () => {
         <div className="settings-group">
           <div className="group-title">帳號與驗證</div>
           <div className="settings-row">
+            <span>登入帳號</span>
+            <span className="settings-val">{user?.email || '已登入'}</span>
+          </div>
+          <div className="settings-row">
             <span>登入狀態</span>
-            <Link to="/login" className="link-btn">
-              前往登入頁面
-            </Link>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+            >
+              {signingOut ? '登出中...' : '登出'}
+            </button>
           </div>
         </div>
 

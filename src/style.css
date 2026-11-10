@@ -449,6 +449,20 @@ button, input {
   line-height: 1.5;
 }
 
+.alert-box {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 12px 14px;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.alert-box p {
+  margin: 0;
+}
+
 /* Bottom Navigation Bar */
 .bottom-nav {
   position: fixed;

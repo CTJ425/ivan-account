@@ -1,5 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './auth/AuthProvider';
+import { RequireAuth } from './auth/RequireAuth';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 
@@ -18,30 +20,34 @@ const LoadingFallback: React.FC = () => (
 
 export const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/categories" element={<Categories />} />
-            <Route path="/budgets" element={<Budgets />} />
-            <Route path="/charts" element={<Charts />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-          <Route
-            path="/login"
-            element={
-              <div className="app-layout">
-                <main className="app-main">
-                  <Login />
-                </main>
-              </div>
-            }
-          />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route element={<RequireAuth />}>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/budgets" element={<Budgets />} />
+                <Route path="/charts" element={<Charts />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Route>
+            <Route
+              path="/login"
+              element={
+                <div className="app-layout">
+                  <main className="app-main">
+                    <Login />
+                  </main>
+                </div>
+              }
+            />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </AuthProvider>
   );
 };
 
