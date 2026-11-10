@@ -14,6 +14,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+button, input {
+  font-family: inherit;
+}
+
 /* App Layout & Mobile Shell (360-430px) */
 .app-layout {
   width: 100%;
@@ -32,7 +36,7 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: 72px; /* space for bottom navigation */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); /* space for bottom navigation */
 }
 
 .page-container {
@@ -109,12 +113,19 @@ html, body {
 .text-input {
   width: 100%;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: 16px;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   background-color: #f8fafc;
   color: #0f172a;
   outline: none;
+}
+
+.text-input:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -1px;
+  border-color: #2563eb;
+  background-color: #ffffff;
 }
 
 .text-input:disabled {
@@ -447,7 +458,7 @@ html, body {
   width: 100%;
   max-width: 430px;
   min-width: 360px;
-  height: 56px;
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
   background-color: #ffffff;
   border-top: 1px solid #e2e8f0;
   display: flex;
@@ -476,6 +487,7 @@ html, body {
   color: #0f172a;
 }
 
+.nav-item.active,
 .nav-item[aria-current="page"] {
   color: #2563eb;
   font-weight: 600;

@@ -25,30 +25,29 @@ v1 範圍外（列為 v2 候選）：每週自動備份、離線記帳、收據�
 
 | 層 | 選擇 | 說明 |
 |---|---|---|
-| 前端框架 | Rust + Leptos (CSR)，以 Trunk 編譯成 WASM | 純靜態輸出，可直接放 Cloudflare Pages |
+| 前端框架 | React + TypeScript，以 Vite 建置 | 純靜態輸出（SPA），可直接放 Cloudflare Pages |
+| 路由 | React Router | 用戶端路由；Cloudflare Pages 以 `_redirects` 做 SPA fallback |
 | 後端 | Supabase Cloud Free：Postgres + Auth + PostgREST | 不寫自有後端服務；商業邏輯放在 SQL (RLS、RPC function) |
-| 部署 | GitHub Actions 編譯 → `wrangler pages deploy dist` | 不用 CF Pages 內建 build，原因見 2.3 |
-| 圖表 | 以 Leptos 元件直接輸出 SVG（已確認） | 見 2.2 |
+| Supabase client | 官方 `@supabase/supabase-js` | 處理 Google 登入 (PKCE)、session 保存、token 自動更新、資料讀寫 |
+| 伺服器狀態 | TanStack Query | 快取、重新抓取、樂觀更新 |
+| 部署 | Cloudflare Pages 的 Git 整合，build command `npm run build`，輸出目錄 `dist` | 推送到 `main` 即自動建置與部署 |
+| CI | GitHub Actions 只做檢查（型別檢查、lint、測試、build） | 不負責部署 |
+| 圖表 | 以 React 元件直接輸出 SVG（已確認） | 見 2.2 |
 
-### 2.1 Supabase 沒有官方 Rust SDK（最大技術風險）
+### 2.1 前端框架選擇紀錄
 
-前端需自行實作一個小型 client 模組，直接呼叫 Supabase 的 REST 端點：
+2026-11-10 確認前端使用 React（最初文件誤寫為 Rust，已建立的 Leptos 骨架作廢）。React 與 Vue 都能滿足需求；選 React 的理由：Supabase 官方文件與範例以 React 為主、生態系與可用元件最多、coding agent 對 React 的產出品質最穩定。
 
-- Auth (GoTrue)：`/auth/v1/authorize?provider=google`（PKCE）、`/auth/v1/token?grant_type=pkce`、`/auth/v1/token?grant_type=refresh_token`、`/auth/v1/logout`
-- Data (PostgREST)：`/rest/v1/<table>` 與 `/rest/v1/rpc/<fn>`
-
-必須自己處理的部分：PKCE `code_verifier` 產生並存入 `sessionStorage`（要撐過跳轉到 Google 再回來）、session 存入 `localStorage`、access token 到期前自動 refresh、refresh 失敗時導回登入頁。
-
-開發的第一個里程碑就是驗證這條登入流程（含 iOS Safari 與 PWA standalone 模式），通過後才做其他功能。
+使用官方 `supabase-js` 後，原本「自行實作 Auth client」的風險不存在。M1 仍需實機驗證 iOS Safari 與 PWA standalone 模式下的 Google 登入跳轉。
 
 ### 2.2 圖表方案
 
-只需要圓餅圖與折線圖兩種。預設採自繪 SVG：無 JS 相依、bundle 小、樣式完全可控；代價是 tooltip 與觸控互動要自己寫。
-替代方案是透過 wasm-bindgen 包 ECharts：互動完整，但多約 1 MB 的 JS，且混入 JS 相依。
+只需要圓餅圖與折線圖兩種。採自繪 SVG：無額外相依、bundle 小、樣式完全可控；代價是 tooltip 與觸控互動要自己寫。
+若日後互動需求變多，可改用 Recharts（React 生態的圖表庫），不影響資料層。
 
-### 2.3 為什麼不用 CF Pages 內建 build
+### 2.3 環境變數
 
-CF Pages 的 build 環境預設沒有 Rust toolchain 與 `wasm32-unknown-unknown` target，每次 build 都要重新安裝，且有 20 分鐘 timeout、每月 500 次上限。改在 GitHub Actions 編譯（可快取 cargo）再上傳成品，較快也較穩定。
+前端只需要兩個公開值，以 Vite 環境變數注入：`VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY`。兩者設計上即為公開，直接提交在 `.env` 檔中；任何 secret key 不得以 `VITE_` 開頭或進入 repo。
 
 ## 3. 資料模型
 
@@ -183,12 +182,12 @@ recurring_rules
 ### 4.8 PWA
 
 - 提供 `manifest.json` 與圖示，可加到主畫面並以全螢幕開啟。
-- Service worker 只快取 App 外殼（HTML / WASM / CSS）；資料讀寫需要網路。離線時顯示明確提示，不靜默失敗。
+- Service worker 只快取 App 外殼（HTML / JS / CSS）；資料讀寫需要網路。離線時顯示明確提示，不靜默失敗。
 
 ## 5. 非功能需求
 
 - 目標裝置：手機瀏覽器（iOS Safari、Android Chrome），直向，寬度 360–430 px。桌機可用但不特別最佳化。
-- 首次載入：WASM 經 brotli 壓縮後目標 < 500 KB（release profile 用 `opt-level = "z"`、LTO、`wasm-opt`）。
+- 首次載入：JS 經 gzip 壓縮後目標 < 200 KB；圖表與設定等非首頁畫面以路由層級的 code splitting 延後載入。
 - 介面語言：繁體中文。
 - 安全：前端只持有 Supabase anon key（本來就是公開的）；資料安全完全靠 RLS，所以每張表都要有 RLS policy 與對應測試。`service_role` key 不得出現在前端或 repo。
 
@@ -208,8 +207,8 @@ recurring_rules
 
 | 項目 | Cloudflare Pages Free | 對本專案的影響 |
 |---|---|---|
-| Build 次數 | 500 次 / 月 | 用 direct upload，不耗此額度 |
-| 單檔大小 | 25 MiB | WASM 約 1–2 MB，沒問題 |
+| Build 次數 | 500 次 / 月 | 每次推送到 `main` 用一次，個人專案用不完 |
+| 單檔大小 | 25 MiB | JS bundle 遠小於此，沒問題 |
 | 檔案數 | 20,000 | 只有數十個檔案 |
 | 靜態請求 / 流量 | 不計量 | 無影響 |
 
@@ -261,8 +260,8 @@ recurring_rules
 
 | # | 內容 | 完成條件 |
 |---|---|---|
-| M0 | 專案骨架：Leptos CSR + Trunk、CI 編譯、部署到 CF Pages | 正式網址可開啟空白 App |
-| M1 | Supabase client 模組 + Google 登入 + 白名單 | 在 iOS Safari、Android Chrome、PWA 模式皆可登入、重新整理後維持登入、token 自動更新 |
+| M0 | 專案骨架：React + TypeScript + Vite、路由與頁面空殼、CI 檢查、Cloudflare Pages 以 `npm run build` 部署 | 正式網址可開啟空白 App |
+| M1 | `supabase-js` 整合 + Google 登入 + 白名單 | 在 iOS Safari、Android Chrome、PWA 模式皆可登入、重新整理後維持登入、token 自動更新 |
 | M2 | Schema、RLS、帳本與成員、起始分類；收支 CRUD | 可新增 / 修改 / 刪除交易；RLS 測試通過（非成員讀不到、寫不進別人的帳本） |
 | M3 | 分類管理、預算、共用帳本成員管理、白名單管理 | 預算進度正確反映當月支出；兩個帳號可在同一共用帳本互見交易 |
 | M4 | 圖表（圓餅、折線；週 / 月 / 年；收入 / 支出） | 圖表數字與明細表、SQL 查詢結果一致 |
@@ -273,10 +272,10 @@ recurring_rules
 
 | 風險 | 影響 | 處理 |
 |---|---|---|
-| 自行實作 Supabase Auth client | 登入、token refresh 的邊界情況出錯 | M1 先行驗證；不過關就改用 JS interop 呼叫 `supabase-js` 只處理 auth |
 | iOS PWA standalone 模式的 OAuth 跳轉 | 部分 iOS 版本跳轉後回不到 PWA 或 session 不共用 | M1 實機測試；若失敗，退回「在 Safari 中使用」 |
-| WASM 體積 | 行動網路首次載入慢 | 編譯參數最佳化 + service worker 快取 |
-| 本機尚未安裝 Rust toolchain | 無法在本機編譯 | M0 安裝 rustup、`wasm32-unknown-unknown`、trunk |
+| RLS policy 寫錯 | 家人看到彼此的個人帳本，或非成員可寫入 | M2 為每張表寫 RLS 測試（成員 / 非成員 / 未登入） |
+| Supabase 免費專案閒置暫停 | App 無法使用，需手動恢復 | M6 的防暫停排程 |
+| v1 沒有自動備份 | 誤刪或專案出事無法還原 | 使用者定期匯出 CSV；v2 加自動備份 |
 
 ## 10. 待決事項
 
