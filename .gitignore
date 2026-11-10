@@ -1,0 +1,19 @@
+# Build outputs
+/target/
+/dist/
+.trunk-lock
+
+# Secrets and environment variables
+.env
+*.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor and IDE directories
+.idea/
+.vscode/
+*.swp
+*.swo
