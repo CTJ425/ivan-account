@@ -4,9 +4,13 @@ node_modules/
 # Production build outputs
 dist/
 
-# Local environment files (make sure .env is NOT ignored)
-.env.local
-.env.*.local
+# Environment files
+.env.*
+!.env
+
+# Tooling and temporary directories
+.claude/
+supabase/.temp/
 
 # Editor and OS files
 .DS_Store

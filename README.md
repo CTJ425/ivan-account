@@ -39,7 +39,7 @@ npm run preview
 ## Production Build & Output
 
 Running `npm run build` generates the compiled client-side single-page application into the `dist/` directory:
-- Optimized JavaScript and CSS bundles
+- Optimized JavaScript and CSS bundles with route-level code splitting
 - `index.html` entry point
 - `_redirects` copied from `public/_redirects` to handle client-side routing fallback on Cloudflare Pages
 
@@ -50,4 +50,6 @@ Deployments are managed automatically via Cloudflare Pages Git integration:
 - **Build command**: `npm run build`
 - **Build output directory**: `dist`
 
-GitHub Actions (`.github/workflows/ci.yml`) runs CI checks (`npm run lint`, `npm run typecheck`, and `npm run build`) on every push to `main` and pull requests.
+Cloudflare Pages automatically picks the Node.js version from `.nvmrc`.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs CI checks (`npm run lint` and `npm run build`) on every push to `main` and pull requests.

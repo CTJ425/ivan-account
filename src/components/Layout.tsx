@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+
+const LoadingFallback: React.FC = () => (
+  <div className="page-container">
+    <p className="placeholder-text">載入中...</p>
+  </div>
+);
 
 export const Layout: React.FC = () => {
   return (
     <div className="app-layout">
       <main className="app-main">
-        <Outlet />
+        <Suspense fallback={<LoadingFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <nav className="bottom-nav" aria-label="主要導覽">

@@ -30,3 +30,5 @@ export const Budgets: React.FC = () => {
     </div>
   );
 };
+
+export default Budgets;

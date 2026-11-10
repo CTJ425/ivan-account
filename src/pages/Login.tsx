@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 export const Login: React.FC = () => {
   return (
@@ -16,12 +15,6 @@ export const Login: React.FC = () => {
         <button type="button" className="primary-button" disabled>
           使用 Google 帳號登入（M1 實作）
         </button>
-
-        <div className="login-footer">
-          <Link to="/" className="link-btn">
-            返回首頁
-          </Link>
-        </div>
       </div>
 
       <div className="note-box">
@@ -30,3 +23,5 @@ export const Login: React.FC = () => {
     </div>
   );
 };
+
+export default Login;

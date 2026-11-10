@@ -51,8 +51,9 @@ export const Home: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">備註</label>
+          <label htmlFor="note-input" className="form-label">備註</label>
           <input
+            id="note-input"
             type="text"
             className="text-input"
             placeholder="選填，最多 200 字"
@@ -74,3 +75,5 @@ export const Home: React.FC = () => {
     </div>
   );
 };
+
+export default Home;

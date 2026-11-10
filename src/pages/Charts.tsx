@@ -67,3 +67,5 @@ export const Charts: React.FC = () => {
     </div>
   );
 };
+
+export default Charts;
