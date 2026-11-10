@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
+import { Slip } from '../components/Slip';
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -20,57 +21,74 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="page-container">
-      <header className="page-header">
-        <h1 className="page-title">設定</h1>
-      </header>
+    <div className="page-centered-container">
+      <h1 className="page-title">設定</h1>
 
-      <div className="card">
-        <div className="settings-group">
-          <div className="group-title">帳號與驗證</div>
-          <div className="settings-row">
-            <span>登入帳號</span>
-            <span className="settings-val">{user?.email || '已登入'}</span>
-          </div>
-          <div className="settings-row">
-            <span>登入狀態</span>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-            >
-              {signingOut ? '登出中...' : '登出'}
-            </button>
-          </div>
-        </div>
+      <Slip
+        title="設定"
+        headerRight={
+          <span className="slip-total">{user?.email || '已登入'}</span>
+        }
+      >
+        <Link to="/settings/categories" className="settings-item-row">
+          <span>分類管理</span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="settings-chevron"
+            aria-hidden="true"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
 
-        <div className="settings-group">
-          <div className="group-title">帳本管理</div>
-          <div className="settings-row">
-            <span>目前帳本</span>
-            <span className="settings-val">個人帳本</span>
-          </div>
-          <div className="settings-row">
-            <span>共用帳本</span>
-            <span className="settings-val">尚未加入</span>
-          </div>
-        </div>
+        <button type="button" className="settings-item-row" disabled>
+          <span>週期性項目</span>
+          <span className="slip-note">即將推出</span>
+        </button>
 
-        <div className="settings-group">
-          <div className="group-title">資料匯出</div>
-          <div className="settings-row">
-            <span>CSV 交易匯出</span>
-            <button type="button" className="secondary-button" disabled>
-              匯出 CSV
-            </button>
-          </div>
-        </div>
-      </div>
+        <button type="button" className="settings-item-row" disabled>
+          <span>帳本與成員</span>
+          <span className="slip-note">即將推出</span>
+        </button>
 
-      <div className="note-box">
-        <p>帳本管理、白名單與週期性項目功能將於後續里程碑實作。</p>
-      </div>
+        <button type="button" className="settings-item-row" disabled>
+          <span>白名單</span>
+          <span className="slip-note">即將推出</span>
+        </button>
+
+        <button type="button" className="settings-item-row" disabled>
+          <span>匯出 CSV</span>
+          <span className="slip-note">即將推出</span>
+        </button>
+
+        <button
+          type="button"
+          className="settings-item-row danger"
+          onClick={handleSignOut}
+          disabled={signingOut}
+        >
+          <span>{signingOut ? '登出中...' : '登出'}</span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="settings-chevron"
+            aria-hidden="true"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </Slip>
     </div>
   );
 };

@@ -1,63 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Slip, SlipRow } from '../components/Slip';
 
 export const Categories: React.FC = () => {
-  const [kind, setKind] = useState<'expense' | 'income'>('expense');
-
   return (
-    <div className="page-container">
-      <header className="page-header">
-        <h1 className="page-title">分類管理</h1>
-      </header>
+    <div className="page-centered-container">
+      <h1 className="page-title">分類管理</h1>
 
-      <div className="tab-header">
-        <button
-          type="button"
-          className={`tab-btn ${kind === 'expense' ? 'active' : ''}`}
-          aria-pressed={kind === 'expense'}
-          onClick={() => setKind('expense')}
-        >
-          支出分類
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${kind === 'income' ? 'active' : ''}`}
-          aria-pressed={kind === 'income'}
-          onClick={() => setKind('income')}
-        >
-          收入分類
-        </button>
-      </div>
+      <Slip title="支出分類" total="12 個分類">
+        <SlipRow category="餐食" note="早餐、午餐、晚餐、飲料" amount="4 個" groupColor="var(--g1)" />
+        <SlipRow category="交通" note="捷運、公車、加油" amount="3 個" groupColor="var(--g2)" />
+        <SlipRow category="居住" note="房租、水電瓦斯、居家用品" amount="3 個" groupColor="var(--g3)" />
+        <SlipRow category="娛樂" note="休閒娛樂" amount="1 個" groupColor="var(--g4)" />
+        <SlipRow category="購物" note="日常購物" amount="1 個" groupColor="var(--g5)" />
+      </Slip>
 
-      <div className="card">
-        <div className="category-group">
-          <div className="group-title">餐食</div>
-          <ul className="item-list">
-            <li className="item-row">早餐</li>
-            <li className="item-row">午餐</li>
-            <li className="item-row">晚餐</li>
-          </ul>
-        </div>
+      <div style={{ height: '16px' }} />
 
-        <div className="category-group">
-          <div className="group-title">交通</div>
-          <ul className="item-list">
-            <li className="item-row">大眾運輸</li>
-            <li className="item-row">加油 / 停車</li>
-          </ul>
-        </div>
-
-        <div className="category-group">
-          <div className="group-title">居住</div>
-          <ul className="item-list">
-            <li className="item-row">房租</li>
-            <li className="item-row">水電瓦斯</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="note-box">
-        <p>兩層分類架構（群組 → 分類）與封存功能將於 M3 實作。</p>
-      </div>
+      <Slip title="收入分類" total="4 個分類">
+        <SlipRow category="薪資" note="本薪、獎金" amount="2 個" groupColor="var(--income)" isIncome />
+        <SlipRow category="投資" note="投資收益" amount="1 個" groupColor="var(--g7)" isIncome />
+        <SlipRow category="其他" note="其他收入" amount="1 個" groupColor="var(--g8)" isIncome />
+      </Slip>
     </div>
   );
 };

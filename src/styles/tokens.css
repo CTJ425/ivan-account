@@ -1,0 +1,53 @@
+/* Design tokens */
+:root {
+  --ground: #ECEFF2;
+  --slip: #FFFFFF;
+  --ink: #1C2024;
+  --ink-2: #5A6169;
+  --ink-3: #8A9199;
+  --rule: #D5DAE0;
+  --invoice: #B3203A;
+  --on-invoice: #FFFFFF;
+  --income: #17775A;
+  --over: #B3203A;
+
+  /* Group palette */
+  --g1: #3E6FB0;
+  --g2: #C9741C;
+  --g3: #2B8A6B;
+  --g4: #8657BF;
+  --g5: #C0485F;
+  --g6: #6E8B24;
+  --g7: #2797B0;
+  --g8: #8A6A4E;
+
+  /* Elevation & Borders */
+  --slip-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.05);
+  --slip-border: 1px solid transparent;
+
+  /* Radii */
+  --radius-slip: 2px;
+  --radius-control: 6px;
+
+  /* Selection & caret */
+  --selection-bg: rgba(179, 32, 58, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #16181B;
+    --slip: #1F2226;
+    --ink: #E8EAED;
+    --ink-2: #A3AAB2;
+    --ink-3: #737A82;
+    --rule: #353A40;
+    --invoice: #E0566C;
+    --on-invoice: #1A0B0E;
+    --income: #4CC39A;
+    --over: #E0566C;
+
+    --slip-shadow: none;
+    --slip-border: 1px solid var(--rule);
+    --selection-bg: rgba(224, 86, 108, 0.25);
+  }
+}

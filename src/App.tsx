@@ -1,10 +1,11 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthProvider';
 import { RequireAuth } from './auth/RequireAuth';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 
+const Transactions = lazy(() => import('./pages/Transactions'));
 const Categories = lazy(() => import('./pages/Categories'));
 const Budgets = lazy(() => import('./pages/Budgets'));
 const Charts = lazy(() => import('./pages/Charts'));
@@ -13,8 +14,8 @@ const Login = lazy(() => import('./pages/Login'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const LoadingFallback: React.FC = () => (
-  <div className="page-container">
-    <p className="placeholder-text">載入中...</p>
+  <div className="phone-container">
+    <div className="slip-empty">載入中...</div>
   </div>
 );
 
@@ -27,23 +28,19 @@ export const App: React.FC = () => {
             <Route element={<RequireAuth />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<Home />} />
-                <Route path="/categories" element={<Categories />} />
+                <Route path="/transactions" element={<Transactions />} />
                 <Route path="/budgets" element={<Budgets />} />
                 <Route path="/charts" element={<Charts />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/categories" element={<Categories />} />
+                <Route
+                  path="/categories"
+                  element={<Navigate to="/settings/categories" replace />}
+                />
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Route>
-            <Route
-              path="/login"
-              element={
-                <div className="app-layout">
-                  <main className="app-main">
-                    <Login />
-                  </main>
-                </div>
-              }
-            />
+            <Route path="/login" element={<Login />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

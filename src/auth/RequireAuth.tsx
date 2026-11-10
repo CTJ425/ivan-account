@@ -19,8 +19,8 @@ export const RequireAuth: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="page-container">
-        <p className="placeholder-text">載入中...</p>
+      <div className="phone-container">
+        <div className="slip-empty">載入中...</div>
       </div>
     );
   }
