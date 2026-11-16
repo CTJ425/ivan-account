@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatAmount } from '../demo/data';
+import { formatAmount } from '../lib/format';
 
 export interface SlipProps {
   title: string;
