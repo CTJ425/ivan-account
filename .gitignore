@@ -22,3 +22,6 @@ Thumbs.db
 
 # Design review screenshots
 .impeccable/review/
+
+# Locally generated SQL that contains personal data (admin email); apply by hand, never commit
+supabase/local/
