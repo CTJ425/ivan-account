@@ -28,6 +28,7 @@
   --on-accent: #FFFFFF;
   --income: #0F7B5F;
   --on-income: #FFFFFF;
+  --warn: #B45309;
   --over: #C8372D;
 
   /* Ledger Identity Colors */
@@ -59,8 +60,49 @@
   accent-color: var(--accent);
 }
 
+:root:has(> head > meta[name="color-scheme"][content="light"]) {
+  color-scheme: light;
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
+  color-scheme: dark;
+  --ground: #11161D;
+  --surface: #181F28;
+  --surface-sub: #1E2733;
+  --rule: #2A3544;
+  --rule-strong: #687A90;
+
+  --shell: #0D1929;
+  --shell-hover: #15263D;
+  --shell-active: #1D3352;
+  --shell-border: #1E324D;
+  --shell-ink: #F2F6FB;
+  --shell-ink-2: #A6B8CE;
+
+  --ink: #EDF2F8;
+  --ink-2: #9FB0C4;
+  --ink-3: #8899AE;
+
+  --accent: #5B94F5;
+  --accent-hover: #74A5F7;
+  --on-accent: #091322;
+  --income: #3CC89F;
+  --on-income: #071A14;
+  --warn: #F59E0B;
+  --over: #F0645A;
+
+  --ledger-personal: #60A5FA;
+  --ledger-personal-shell: #60A5FA;
+  --ledger-shared: #F59E0B;
+  --ledger-shared-shell: #F59E0B;
+
+  --selection-bg: rgba(91, 148, 245, 0.28);
+  --scrollbar-thumb: #53657B;
+  --scrollbar-track: #141B23;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(:has(> head > meta[name="color-scheme"][content="light"])) {
     --ground: #11161D;
     --surface: #181F28;
     --surface-sub: #1E2733;
@@ -83,6 +125,7 @@
     --on-accent: #091322;
     --income: #3CC89F;
     --on-income: #071A14;
+    --warn: #F59E0B;
     --over: #F0645A;
 
     --ledger-personal: #60A5FA;

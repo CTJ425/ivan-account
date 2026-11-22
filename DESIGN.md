@@ -131,11 +131,11 @@ components:
 
 **Creative North Star: "The Drafting Grid & Blueprint Shell"**
 
-The navigation shell is a committed deep blueprint-navy frame (`#152942` light / `#0D1929` dark) that anchors the user's active ledger before they read a single number. Inside the workspace, a subtle 24px architectural grid ground (`#F3F6FA` / `#11161D`) carries flat, zero-shadow pure-white drafting sheets separated strictly by 1px structural rules (`#D4DEE9` / `#2A3544`).
+The navigation shell is a committed deep blueprint-navy frame (`#152942` light / `#0D1929` dark) that anchors the user's active ledger before they read a single number. Inside the workspace, a subtle drafting ground (`#F3F6FA` / `#11161D`) carries flat, zero-shadow pure-white drafting sheets separated strictly by 1px structural rules (`#D4DEE9` / `#2A3544`).
 
 Every ledger has its own unmistakable identity color—personal blue (`#2563EB` / `#60A5FA`) vs. shared household amber-orange (`#C2610C` / `#F59E0B`)—synchronized across both the ledger switcher in the shell and the top identity strip of the quick-entry sheet so family members never log a personal expense into the shared ledger by mistake.
 
-Typography uses one CJK system sans at strictly two primary weights (`500` and `700`), with tabular right-aligned numerals locked to fixed vertical plumb lines. Dark mode follows the OS `prefers-color-scheme` setting automatically via `color-scheme: light dark`.
+Typography uses one CJK system sans at strictly two primary weights (`500` and `700`), with tabular right-aligned numerals locked to fixed vertical plumb lines. Theme mode supports `淺色` (light), `深色` (dark), and `自動` (follows OS `prefers-color-scheme`) via `<meta name="color-scheme">` and `localStorage`, defaulting to `自動`.
 
 ## Colors
 
@@ -170,7 +170,7 @@ Typography uses one CJK system sans at strictly two primary weights (`500` and `
 ## Layout & Navigation
 
 - **Phone (<1024px)**: Sticky `56px` blueprint-navy top bar (`個人記帳` + ledger switcher); centered single-column quick-entry drafting sheet (`max-width: 560px`) with a built-in 4×4 architectural numeric keypad (`52px` coarse-pointer keys, `00`, `⌫`, `C`, `+`, `−`, `=`, `inputMode="none"` on touch devices to prevent OS keyboard pop-up), minimal today sheet below, and fixed `56px` bottom nav with a `2px` top active indicator (`[aria-current="page"]`).
-- **Desktop (>=1024px)**: Fixed `220px` blueprint-navy left navigation rail (wordmark, full-width ledger switcher, 5 vertical nav links); workspace to the right (`max-width: 1120px`, `380px minmax(0, 1fr)` grid with `24px` gap). Left column holds the sticky quick-entry sheet; right column holds two simplified overview sheets (`本月預算` and `最近交易`).
+- **Desktop (>=1024px)**: Fixed `220px` blueprint-navy left navigation rail (wordmark, full-width ledger switcher, 5 vertical nav links, and a bottom-left footer with the 3-state `淺色/深色/自動` theme toggle, account email + logout, and `v{version}`); workspace to the right (`max-width: 1120px`, `380px minmax(0, 1fr)` grid with `24px` gap). Left column holds the sticky quick-entry sheet; right column holds two simplified overview sheets (`本月預算` and `最近交易`).
 
 ## Elevation, Depth & Shapes
 

@@ -1,6 +1,8 @@
 import React, { Suspense, useState, useRef, useEffect, useId } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LEDGERS, type LedgerId, type LedgerInfo } from './ledgerContext';
+import { useAuth } from '../auth/useAuth';
+import { useTheme, type ThemePreference } from '../lib/theme';
 
 const LoadingFallback: React.FC = () => (
   <div className="phone-container">
@@ -116,6 +118,12 @@ const NAV_ITEMS: NavItemDef[] = [
       </svg>
     ),
   },
+];
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'light', label: '淺色' },
+  { value: 'dark', label: '深色' },
+  { value: 'auto', label: '自動' },
 ];
 
 interface LedgerSwitcherProps {
@@ -255,7 +263,23 @@ const LedgerSwitcher: React.FC<LedgerSwitcherProps> = ({
 
 export const Layout: React.FC = () => {
   const [ledgerId, setLedgerId] = useState<LedgerId>('personal');
+  const [signingOut, setSigningOut] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { preference, setPreference } = useTheme();
   const currentLedger = LEDGERS[ledgerId];
+
+  const handleSignOut = async () => {
+    try {
+      setSigningOut(true);
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <div className={`app-shell ledger-state-${ledgerId}`}>
@@ -291,6 +315,38 @@ export const Layout: React.FC = () => {
             </NavLink>
           ))}
         </nav>
+
+        <footer className="side-rail-footer">
+          <div className="rail-theme-group" role="group" aria-label="外觀主題">
+            {THEME_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`rail-theme-btn ${preference === opt.value ? 'active' : ''}`}
+                aria-pressed={preference === opt.value}
+                onClick={() => setPreference(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="rail-account-row">
+            <span className="rail-account-email" title={user?.email || '已登入'}>
+              {user?.email || '已登入'}
+            </span>
+            <button
+              type="button"
+              className="rail-logout-btn"
+              onClick={handleSignOut}
+              disabled={signingOut}
+            >
+              {signingOut ? '登出中...' : '登出'}
+            </button>
+          </div>
+
+          <div className="rail-version">v{__APP_VERSION__}</div>
+        </footer>
       </aside>
 
       {/* Mobile Sticky Top Bar (<1024px) */}

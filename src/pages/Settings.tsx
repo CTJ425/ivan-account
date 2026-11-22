@@ -2,11 +2,19 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import { Slip } from '../components/Slip';
+import { useTheme, type ThemePreference } from '../lib/theme';
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'light', label: '淺色' },
+  { value: 'dark', label: '深色' },
+  { value: 'auto', label: '自動' },
+];
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
+  const { preference, setPreference, systemTheme } = useTheme();
 
   const handleSignOut = async () => {
     try {
@@ -25,7 +33,34 @@ export const Settings: React.FC = () => {
       <h1 className="page-title">設定</h1>
 
       <Slip
-        title="設定"
+        title="外觀主題"
+        headerRight={
+          <span className="slip-note">
+            {preference === 'auto'
+              ? `跟隨系統（目前${systemTheme === 'dark' ? '深色' : '淺色'}）`
+              : preference === 'dark'
+                ? '固定深色'
+                : '固定淺色'}
+          </span>
+        }
+      >
+        <div className="settings-theme-row" role="group" aria-label="切換外觀主題">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`settings-theme-btn ${preference === opt.value ? 'active' : ''}`}
+              aria-pressed={preference === opt.value}
+              onClick={() => setPreference(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </Slip>
+
+      <Slip
+        title="功能設定"
         headerRight={
           <span className="slip-total">{user?.email || '已登入'}</span>
         }
@@ -89,6 +124,8 @@ export const Settings: React.FC = () => {
           </svg>
         </button>
       </Slip>
+
+      <p className="settings-version-line">版本 v{__APP_VERSION__}</p>
     </div>
   );
 };
