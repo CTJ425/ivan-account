@@ -105,10 +105,10 @@ export const Settings: React.FC = () => {
           </Link>
         )}
 
-        <button type="button" className="settings-item-row" disabled>
+        <Link to="/settings/recurring" className="settings-item-row">
           <span>週期性項目</span>
-          <span className="slip-note">即將推出</span>
-        </button>
+          <ChevronIcon />
+        </Link>
 
         <button type="button" className="settings-item-row" disabled>
           <span>匯出 CSV</span>

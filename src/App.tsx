@@ -13,6 +13,7 @@ const Charts = lazy(() => import('./pages/Charts'));
 const Settings = lazy(() => import('./pages/Settings'));
 const LedgersSettings = lazy(() => import('./pages/LedgersSettings'));
 const WhitelistSettings = lazy(() => import('./pages/WhitelistSettings'));
+const RecurringSettings = lazy(() => import('./pages/RecurringSettings'));
 const Login = lazy(() => import('./pages/Login'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -49,6 +50,7 @@ export const App: React.FC = () => {
                   <Route path="/settings/categories" element={<Categories />} />
                   <Route path="/settings/ledgers" element={<LedgersSettings />} />
                   <Route path="/settings/whitelist" element={<WhitelistSettings />} />
+                  <Route path="/settings/recurring" element={<RecurringSettings />} />
                   <Route
                     path="/categories"
                     element={<Navigate to="/settings/categories" replace />}

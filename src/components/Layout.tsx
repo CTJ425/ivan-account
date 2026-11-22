@@ -1,8 +1,8 @@
 import React, { Suspense, useState, useRef, useEffect, useId } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/useAuth';
-import { fetchLedgers } from '../lib/api';
+import { fetchLedgers, runLedgerRecurringRules } from '../lib/api';
 import type { Ledger } from '../lib/types';
 import { useTheme, type ThemePreference } from '../lib/theme';
 
@@ -285,6 +285,7 @@ const LedgerSwitcher: React.FC<LedgerSwitcherProps> = ({
 export const Layout: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { preference, setPreference } = useTheme();
   const [signingOut, setSigningOut] = useState(false);
   const [isOffline, setIsOffline] = useState(() =>
@@ -321,6 +322,22 @@ export const Layout: React.FC = () => {
 
   const currentLedger =
     ledgers.find((l) => l.id === selectedLedgerId) ?? ledgers[0] ?? null;
+
+  // Catch up any due recurring rules once per ledger session (10 min staleTime)
+  useQuery({
+    queryKey: ['recurring_catchup', currentLedger?.id],
+    queryFn: async () => {
+      const inserted = await runLedgerRecurringRules(currentLedger!.id);
+      if (inserted > 0) {
+        void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        void queryClient.invalidateQueries({ queryKey: ['budgets'] });
+        void queryClient.invalidateQueries({ queryKey: ['charts'] });
+      }
+      return inserted;
+    },
+    enabled: Boolean(currentLedger?.id) && !isOffline,
+    staleTime: 600_000,
+  });
 
   const handleSelectLedger = (id: string) => {
     setSelectedLedgerId(id);

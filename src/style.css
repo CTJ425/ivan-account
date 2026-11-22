@@ -2312,6 +2312,27 @@ button, input, select, textarea {
   font-weight: 700;
 }
 
+/* Recurring Rules Form & List */
+.recurring-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .recurring-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.recurring-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
 /* Forced Colors Mode Support */
 @media (forced-colors: active) {
   .side-nav-link[aria-current="page"],
