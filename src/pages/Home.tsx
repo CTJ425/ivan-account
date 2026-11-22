@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useLedger } from '../components/ledgerContext';
 import { Slip } from '../components/Slip';
 
 const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
@@ -22,6 +23,7 @@ const formatDisplayDate = (dateStr: string): string => {
 };
 
 export const Home: React.FC = () => {
+  const { currentLedger } = useLedger();
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [amountStr, setAmountStr] = useState('');
   const [date, setDate] = useState(() => toLocalDateStr(new Date()));
@@ -35,107 +37,184 @@ export const Home: React.FC = () => {
     setAmountStr(e.target.value.replace(/[^0-9]/g, ''));
   };
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+  };
+
   return (
     <div className="desktop-container">
-      <p className="demo-banner">尚未連接帳本，記帳功能將在下一版開放</p>
+      <h1 className="visually-hidden">快速記帳</h1>
+
+      <div className="workspace-status-bar" role="status">
+        <span className="status-dot" aria-hidden="true" />
+        <p className="demo-banner">尚未連接帳本，記帳功能將在下一版開放</p>
+      </div>
 
       <div className="desktop-home-grid">
-        {/* Left Column (Sticky on Desktop, top on Phone) */}
+        {/* Left Column: Quick-Entry Drafting Sheet */}
         <div className="desktop-left-column">
-          <div className="entry-panel">
-            {/* Expense / Income Segmented Control */}
-            <div className="segmented-control" role="group" aria-label="收支切換">
-              <button
-                type="button"
-                className={`segmented-btn ${kind === 'expense' ? 'active-expense' : ''}`}
-                aria-pressed={kind === 'expense'}
-                onClick={() => setKind('expense')}
-              >
-                支出
-              </button>
-              <button
-                type="button"
-                className={`segmented-btn ${kind === 'income' ? 'active-income' : ''}`}
-                aria-pressed={kind === 'income'}
-                onClick={() => setKind('income')}
-              >
-                收入
-              </button>
-            </div>
+          <form
+            className={`entry-panel entry-ledger-${currentLedger.id}`}
+            onSubmit={handleSubmit}
+          >
+            {/* Active Ledger Identity Strip */}
+            <header className="entry-ledger-strip">
+              <span className="entry-ledger-id">
+                <span
+                  className={`ledger-mark ledger-mark-${currentLedger.id} ledger-mark-surface`}
+                  aria-hidden="true"
+                />
+                <span className="entry-ledger-name">
+                  記入：{currentLedger.name}
+                </span>
+              </span>
+              <span className="entry-ledger-scope">
+                {currentLedger.scopeLabel}
+              </span>
+            </header>
 
-            {/* Amount Input */}
-            <div className="amount-field-wrapper">
-              <label htmlFor="amount-input" className="currency-label">
-                NT$
-              </label>
-              <input
-                id="amount-input"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                className="amount-input"
-                placeholder="0"
-                value={amountStr}
-                onChange={handleAmountChange}
-                aria-label="金額"
-              />
-            </div>
+            <div className="entry-panel-body">
+              {/* Expense / Income Segmented Control */}
+              <div className="segmented-control" role="group" aria-label="收支類型">
+                <button
+                  type="button"
+                  className={`segmented-btn ${kind === 'expense' ? 'active-expense' : ''}`}
+                  aria-pressed={kind === 'expense'}
+                  onClick={() => setKind('expense')}
+                >
+                  支出
+                </button>
+                <button
+                  type="button"
+                  className={`segmented-btn ${kind === 'income' ? 'active-income' : ''}`}
+                  aria-pressed={kind === 'income'}
+                  onClick={() => setKind('income')}
+                >
+                  收入
+                </button>
+              </div>
 
-            {/* Category Grid: filled from the ledger's categories in M2 */}
-            <div className="slip-empty">尚無分類</div>
-
-            {/* Date and Note Row */}
-            <div className="date-note-row">
-              <div className="date-trigger-btn">
-                <span>{formatDisplayDate(date)}</span>
+              {/* Amount Input */}
+              <div className="amount-field-wrapper">
+                <label htmlFor="amount-input" className="currency-label">
+                  <span className="visually-hidden">金額</span>
+                  NT$
+                </label>
                 <input
-                  type="date"
-                  className="native-date-input"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  aria-label="選擇日期"
+                  id="amount-input"
+                  name="amount"
+                  type="text"
+                  inputMode="numeric"
+                  enterKeyHint="next"
+                  pattern="[0-9]*"
+                  autoComplete="off"
+                  className="amount-input"
+                  placeholder="0"
+                  value={amountStr}
+                  onChange={handleAmountChange}
                 />
               </div>
 
-              <input
-                id="note-input"
-                type="text"
-                className="note-input-field"
-                placeholder="備註（選填）"
-                maxLength={200}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                aria-label="備註"
-              />
+              {/* Category Area: architectural empty state until M2 connects categories */}
+              <div className="category-empty-frame">
+                <span className="category-empty-title">尚無分類</span>
+                <span className="category-empty-sub">
+                  連接帳本後即可點選常用分類
+                </span>
+              </div>
+
+              {/* Date and Note Row */}
+              <div className="date-note-row">
+                <div className="date-trigger-btn">
+                  <label htmlFor="date-input" className="visually-hidden">
+                    交易日期
+                  </label>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    width="15"
+                    height="15"
+                    aria-hidden="true"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  <span>{formatDisplayDate(date)}</span>
+                  <input
+                    id="date-input"
+                    name="date"
+                    type="date"
+                    className="native-date-input"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+
+                <label htmlFor="note-input" className="visually-hidden">
+                  備註（選填）
+                </label>
+                <input
+                  id="note-input"
+                  name="note"
+                  type="text"
+                  enterKeyHint="done"
+                  autoComplete="off"
+                  className="note-input-field"
+                  placeholder="備註（選填）"
+                  maxLength={200}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </div>
+
+              {/* Primary Save Action */}
+              <button type="submit" className="save-action-btn" disabled>
+                記一筆
+              </button>
             </div>
+          </form>
 
-            {/* Save Button: disabled until transactions are stored (M2) */}
-            <button type="button" className="save-action-btn" disabled>
-              記一筆
-            </button>
-          </div>
-
-          {/* Phone-only: Today's slip + link to all transactions */}
+          {/* Phone-only: Minimal Today Feedback */}
           <div className="phone-only-section">
-            <Slip title={todayTitle} />
-            <div className="view-all-link-container">
-              <Link to="/transactions" className="view-all-link">
-                看全部明細
-              </Link>
-            </div>
+            <Slip
+              title={`今日紀錄 · ${todayTitle}`}
+              emptyText="今天還沒有記錄"
+              headerRight={
+                <Link to="/transactions" className="sheet-header-link">
+                  看全部明細
+                </Link>
+              }
+            />
           </div>
         </div>
 
-        {/* Right Column (Desktop >= 1024px overview slips) */}
+        {/* Right Column (Desktop >=1024px): Simplified Essentials Overview */}
         <div className="desktop-right-column">
-          <Slip title={`${monthLabel}預算`} emptyText="尚未設定預算" />
+          <Slip
+            title={`${monthLabel}預算`}
+            emptyText="尚未設定本月預算"
+            headerRight={
+              <Link to="/budgets" className="sheet-header-link">
+                管理預算
+              </Link>
+            }
+          />
 
-          <div className="desktop-side-by-side">
-            <Slip title={`${monthLabel}收支`} emptyText="本月還沒有記錄" />
-            <Slip title={`${monthLabel}支出分布`} emptyText="本月還沒有支出" />
-          </div>
-
-          <Slip title={todayTitle} />
+          <Slip
+            title={`最近交易 · ${todayTitle}`}
+            emptyText="今天還沒有記錄"
+            headerRight={
+              <Link to="/transactions" className="sheet-header-link">
+                看全部明細
+              </Link>
+            }
+          />
         </div>
       </div>
     </div>

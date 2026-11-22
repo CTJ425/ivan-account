@@ -7,10 +7,8 @@ export const NotFound: React.FC = () => {
     <div className="page-centered-container">
       <h1 className="page-title">找不到頁面</h1>
       <Slip title="404">
-        <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-          <p style={{ margin: '0 0 16px', color: 'var(--ink-2)', fontSize: '14px' }}>
-            此路徑不存在或已被移除。
-          </p>
+        <div className="not-found-body">
+          <p className="not-found-desc">此路徑不存在或已被移除。</p>
           <Link to="/" className="view-all-link">
             返回首頁
           </Link>

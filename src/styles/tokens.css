@@ -1,53 +1,97 @@
-/* Design tokens */
+/* Design tokens — 建築方眼藍圖 (Drafting Grid) */
 :root {
-  --ground: #ECEFF2;
-  --slip: #FFFFFF;
-  --ink: #1C2024;
-  --ink-2: #5A6169;
-  --ink-3: #8A9199;
-  --rule: #D5DAE0;
-  --invoice: #B3203A;
-  --on-invoice: #FFFFFF;
-  --income: #17775A;
-  --over: #B3203A;
+  color-scheme: light dark;
 
-  /* Group palette */
-  --g1: #3E6FB0;
-  --g2: #C9741C;
-  --g3: #2B8A6B;
-  --g4: #8657BF;
-  --g5: #C0485F;
-  --g6: #6E8B24;
-  --g7: #2797B0;
-  --g8: #8A6A4E;
+  /* Surfaces & Structural Rules */
+  --ground: #F3F6FA;
+  --surface: #FFFFFF;
+  --surface-sub: #F7F9FC;
+  --rule: #D4DEE9;
+  --rule-strong: #76889B;
 
-  /* Elevation & Borders */
-  --slip-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.05);
-  --slip-border: 1px solid transparent;
+  /* Blueprint Navy Shell */
+  --shell: #152942;
+  --shell-hover: #1D3554;
+  --shell-active: #25436A;
+  --shell-border: #274162;
+  --shell-ink: #F4F7FB;
+  --shell-ink-2: #B8C7DA;
 
-  /* Radii */
-  --radius-slip: 2px;
-  --radius-control: 6px;
+  /* Ink Scale (strictly contrast-checked >= 4.5:1 on --surface) */
+  --ink: #121B26;
+  --ink-2: #4B596A;
+  --ink-3: #677688;
 
-  /* Selection & caret */
-  --selection-bg: rgba(179, 32, 58, 0.2);
+  /* Semantic & Action Colors */
+  --accent: #1D56B8;
+  --accent-hover: #174698;
+  --on-accent: #FFFFFF;
+  --income: #0F7B5F;
+  --on-income: #FFFFFF;
+  --over: #C8372D;
+
+  /* Ledger Identity Colors */
+  --ledger-personal: #2563EB;
+  --ledger-personal-shell: #60A5FA;
+  --ledger-shared: #C2610C;
+  --ledger-shared-shell: #F59E0B;
+
+  /* Category Group Palette (flat structural marks) */
+  --g1: #2E64B3;
+  --g2: #C26B19;
+  --g3: #1E7E62;
+  --g4: #764EB3;
+  --g5: #B84259;
+  --g6: #5F7A20;
+  --g7: #1E8299;
+  --g8: #7D5E44;
+
+  /* Radii (crisp architectural corners, zero pills) */
+  --radius-sheet: 4px;
+  --radius-control: 4px;
+  --radius-chip: 2px;
+
+  /* Browser Surface Theming */
+  --selection-bg: rgba(29, 86, 184, 0.18);
+  --scrollbar-thumb: #7B8EA3;
+  --scrollbar-track: #E6ECF3;
+
+  accent-color: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground: #16181B;
-    --slip: #1F2226;
-    --ink: #E8EAED;
-    --ink-2: #A3AAB2;
-    --ink-3: #737A82;
-    --rule: #353A40;
-    --invoice: #E0566C;
-    --on-invoice: #1A0B0E;
-    --income: #4CC39A;
-    --over: #E0566C;
+    --ground: #11161D;
+    --surface: #181F28;
+    --surface-sub: #1E2733;
+    --rule: #2A3544;
+    --rule-strong: #687A90;
 
-    --slip-shadow: none;
-    --slip-border: 1px solid var(--rule);
-    --selection-bg: rgba(224, 86, 108, 0.25);
+    --shell: #0D1929;
+    --shell-hover: #15263D;
+    --shell-active: #1D3352;
+    --shell-border: #1E324D;
+    --shell-ink: #F2F6FB;
+    --shell-ink-2: #A6B8CE;
+
+    --ink: #EDF2F8;
+    --ink-2: #9FB0C4;
+    --ink-3: #8899AE;
+
+    --accent: #5B94F5;
+    --accent-hover: #74A5F7;
+    --on-accent: #091322;
+    --income: #3CC89F;
+    --on-income: #071A14;
+    --over: #F0645A;
+
+    --ledger-personal: #60A5FA;
+    --ledger-personal-shell: #60A5FA;
+    --ledger-shared: #F59E0B;
+    --ledger-shared-shell: #F59E0B;
+
+    --selection-bg: rgba(91, 148, 245, 0.28);
+    --scrollbar-thumb: #53657B;
+    --scrollbar-track: #141B23;
   }
 }

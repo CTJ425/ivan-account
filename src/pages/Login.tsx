@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/useAuth';
-import { Slip } from '../components/Slip';
 
 export const Login: React.FC = () => {
   const { session, loading, isUnauthorized } = useAuth();
@@ -95,8 +94,12 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="login-wrapper">
-      <Slip title="個人記帳" className="login-slip">
+    <main className="login-wrapper">
+      <article className="slip-card login-slip">
+        <header className="login-header">
+          <h1 className="login-title">個人記帳</h1>
+        </header>
+
         <div className="login-content">
           <p className="login-desc">請使用已加入白名單的 Google 帳號登入系統。</p>
 
@@ -133,8 +136,8 @@ export const Login: React.FC = () => {
             <span>{isSigningIn ? '連線中...' : '使用 Google 帳號登入'}</span>
           </button>
         </div>
-      </Slip>
-    </div>
+      </article>
+    </main>
   );
 };
 

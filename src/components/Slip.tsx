@@ -23,7 +23,7 @@ export const Slip: React.FC<SlipProps> = ({
   return (
     <article className={`slip-card ${className}`}>
       <header className="slip-header">
-        <span className="slip-title">{title}</span>
+        <h2 className="slip-title">{title}</h2>
         {headerRight ? (
           headerRight
         ) : total !== undefined && total !== null ? (
@@ -32,8 +32,6 @@ export const Slip: React.FC<SlipProps> = ({
           </span>
         ) : null}
       </header>
-
-      <div className="slip-tear-line" aria-hidden="true" />
 
       <div className="slip-body">
         {hasContent ? (
@@ -70,13 +68,8 @@ export const SlipRow: React.FC<SlipRowProps> = ({
       ? `${isIncome ? '+' : ''}${formatAmount(amount)}`
       : amount;
 
-  return (
-    <div
-      className={`slip-row ${isNew ? 'slip-row-animate' : ''} ${onClick ? 'slip-row-interactive' : ''}`}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-    >
+  const content = (
+    <>
       <div className="slip-row-left">
         {groupColor && (
           <span
@@ -92,6 +85,24 @@ export const SlipRow: React.FC<SlipRowProps> = ({
       <div className={`slip-amount ${isIncome ? 'slip-amount-income' : ''}`}>
         {formattedAmount}
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className={`slip-row slip-row-interactive ${isNew ? 'slip-row-animate' : ''}`}
+        onClick={onClick}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={`slip-row ${isNew ? 'slip-row-animate' : ''}`}>
+      {content}
     </div>
   );
 };
@@ -114,7 +125,6 @@ export const SlipBudgetRow: React.FC<SlipBudgetRowProps> = ({
   const isOver = used > budget;
   const overAmount = used - budget;
 
-  // Scale: maxScale = 100% of the bar width
   const budgetPct = Math.min(100, Math.max(0, (budget / maxScale) * 100));
   const usedPct = Math.min(100, Math.max(0, (Math.min(used, budget) / maxScale) * 100));
   const overPct = isOver
@@ -122,7 +132,7 @@ export const SlipBudgetRow: React.FC<SlipBudgetRowProps> = ({
     : 0;
 
   return (
-    <div className="slip-budget-row">
+    <div className={`slip-budget-row ${isOver ? 'is-over' : ''}`}>
       <div className="slip-budget-header">
         <span className="slip-budget-name">{name}</span>
         <span className={`slip-budget-val ${isOver ? 'slip-val-over' : ''}`}>
@@ -136,7 +146,9 @@ export const SlipBudgetRow: React.FC<SlipBudgetRowProps> = ({
         <div
           className="slip-bar-used"
           style={{
-            width: isOver ? `${(budgetPct / (budgetPct + overPct)) * 100}%` : `${(usedPct / budgetPct) * 100}%`,
+            width: isOver
+              ? `${(budgetPct / (budgetPct + overPct)) * 100}%`
+              : `${(usedPct / budgetPct) * 100}%`,
             backgroundColor: color,
           }}
         />
@@ -183,7 +195,8 @@ export const SlipCompareRow: React.FC<SlipCompareRowProps> = ({
       <div className="slip-compare-header">
         <span className="slip-compare-label">{label}</span>
         <span className="slip-compare-amount" style={{ color }}>
-          {prefix}{formatAmount(amount)}
+          {prefix}
+          {formatAmount(amount)}
         </span>
       </div>
       <div className="slip-bar-track">
