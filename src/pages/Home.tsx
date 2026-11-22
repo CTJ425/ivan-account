@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useLedger } from '../components/ledgerContext';
 import { Slip } from '../components/Slip';
+import { NumericKeypad } from '../components/NumericKeypad';
 
 const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+const MAX_DIGITS = 9;
+const MAX_AMOUNT = 999_999_999;
 
 const toLocalDateStr = (d: Date): string => {
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -22,23 +25,110 @@ const formatDisplayDate = (dateStr: string): string => {
   return dateStr;
 };
 
+const evaluateExpression = (raw: string): string => {
+  const cleaned = raw.replace(/[+-]+$/, '');
+  if (!cleaned) return '';
+  const match = cleaned.match(/^(\d+)([+-])(\d+)$/);
+  if (!match) {
+    const n = Number(cleaned);
+    return Number.isFinite(n)
+      ? String(Math.min(MAX_AMOUNT, Math.max(0, Math.trunc(n))))
+      : '';
+  }
+  const left = Number(match[1]);
+  const op = match[2];
+  const right = Number(match[3]);
+  const result = op === '+' ? left + right : left - right;
+  const clamped = Math.min(MAX_AMOUNT, Math.max(0, Math.trunc(result)));
+  return String(clamped);
+};
+
+const appendDigitToExpr = (prev: string, digit: string): string => {
+  const opIdx = Math.max(prev.lastIndexOf('+'), prev.lastIndexOf('-'));
+  const prefix = opIdx >= 0 ? prev.slice(0, opIdx + 1) : '';
+  const current = opIdx >= 0 ? prev.slice(opIdx + 1) : prev;
+
+  if (current.length >= MAX_DIGITS) return prev;
+
+  let nextSegment: string;
+  if (current === '' || current === '0') {
+    nextSegment = digit === '0' || digit === '00' ? '0' : digit;
+  } else {
+    nextSegment = (current + digit).slice(0, MAX_DIGITS);
+  }
+
+  return prefix + nextSegment;
+};
+
+const appendOperatorToExpr = (prev: string, op: '+' | '-'): string => {
+  if (!prev) return prev;
+  if (prev.endsWith('+') || prev.endsWith('-')) {
+    return prev.slice(0, -1) + op;
+  }
+  const evaluated = evaluateExpression(prev);
+  return evaluated ? evaluated + op : '';
+};
+
+const formatExprDisplay = (raw: string): string => {
+  if (!raw) return '';
+  return raw
+    .replace(/\d+/g, (num) => Number(num).toLocaleString('en-US'))
+    .replace(/([+-])/g, ' $1 ');
+};
+
 export const Home: React.FC = () => {
   const { currentLedger } = useLedger();
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
-  const [amountStr, setAmountStr] = useState('');
+  const [amountExpr, setAmountExpr] = useState('');
   const [date, setDate] = useState(() => toLocalDateStr(new Date()));
   const [note, setNote] = useState('');
+  const [isTouchPointer, setIsTouchPointer] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(pointer: coarse)');
+    setIsTouchPointer(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsTouchPointer(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   const now = new Date();
   const todayTitle = `${now.getMonth() + 1}/${now.getDate()}（${DAY_NAMES[now.getDay()]}）`;
   const monthLabel = `${now.getMonth() + 1} 月`;
 
+  const hasOperator = /[+-]/.test(amountExpr);
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAmountStr(e.target.value.replace(/[^0-9]/g, ''));
+    const raw = e.target.value.replace(/[^0-9+-]/g, '');
+    if (!raw) {
+      setAmountExpr('');
+      return;
+    }
+    const match = raw.match(/^(\d{0,9})([+-])?(\d{0,9})?/);
+    if (!match) return;
+    const left = match[1] || '';
+    const op = left && match[2] ? match[2] : '';
+    const right = op && match[3] ? match[3] : '';
+    setAmountExpr(left + op + right);
+  };
+
+  const handleAmountKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
+    if ((e.key === 'Enter' || e.key === '=') && hasOperator) {
+      e.preventDefault();
+      setAmountExpr((prev) => evaluateExpression(prev));
+    } else if (e.key === 'Escape' && amountExpr) {
+      e.preventDefault();
+      setAmountExpr('');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (hasOperator) {
+      setAmountExpr((prev) => evaluateExpression(prev));
+    }
   };
 
   return (
@@ -104,14 +194,14 @@ export const Home: React.FC = () => {
                   id="amount-input"
                   name="amount"
                   type="text"
-                  inputMode="numeric"
+                  inputMode={isTouchPointer ? 'none' : 'numeric'}
                   enterKeyHint="next"
-                  pattern="[0-9]*"
                   autoComplete="off"
                   className="amount-input"
                   placeholder="0"
-                  value={amountStr}
+                  value={formatExprDisplay(amountExpr)}
                   onChange={handleAmountChange}
+                  onKeyDown={handleAmountKeyDown}
                 />
               </div>
 
@@ -172,6 +262,19 @@ export const Home: React.FC = () => {
                   onChange={(e) => setNote(e.target.value)}
                 />
               </div>
+
+              {/* Built-in Drafting Grid Numeric Keypad */}
+              <NumericKeypad
+                hasOperator={hasOperator}
+                hasValue={amountExpr.length > 0}
+                onDigit={(d) => setAmountExpr((prev) => appendDigitToExpr(prev, d))}
+                onOperator={(op) =>
+                  setAmountExpr((prev) => appendOperatorToExpr(prev, op))
+                }
+                onBackspace={() => setAmountExpr((prev) => prev.slice(0, -1))}
+                onClear={() => setAmountExpr('')}
+                onEvaluate={() => setAmountExpr((prev) => evaluateExpression(prev))}
+              />
 
               {/* Primary Save Action */}
               <button type="submit" className="save-action-btn" disabled>

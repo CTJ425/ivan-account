@@ -169,7 +169,7 @@ Typography uses one CJK system sans at strictly two primary weights (`500` and `
 
 ## Layout & Navigation
 
-- **Phone (<1024px)**: Sticky `56px` blueprint-navy top bar (`個人記帳` + ledger switcher); centered single-column quick-entry drafting sheet (`max-width: 560px`) immediately visible without scrolling, minimal today sheet below, and fixed `56px` bottom nav with a `2px` top active indicator (`[aria-current="page"]`).
+- **Phone (<1024px)**: Sticky `56px` blueprint-navy top bar (`個人記帳` + ledger switcher); centered single-column quick-entry drafting sheet (`max-width: 560px`) with a built-in 4×4 architectural numeric keypad (`52px` coarse-pointer keys, `00`, `⌫`, `C`, `+`, `−`, `=`, `inputMode="none"` on touch devices to prevent OS keyboard pop-up), minimal today sheet below, and fixed `56px` bottom nav with a `2px` top active indicator (`[aria-current="page"]`).
 - **Desktop (>=1024px)**: Fixed `220px` blueprint-navy left navigation rail (wordmark, full-width ledger switcher, 5 vertical nav links); workspace to the right (`max-width: 1120px`, `380px minmax(0, 1fr)` grid with `24px` gap). Left column holds the sticky quick-entry sheet; right column holds two simplified overview sheets (`本月預算` and `最近交易`).
 
 ## Elevation, Depth & Shapes
