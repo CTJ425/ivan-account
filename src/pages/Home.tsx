@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/useAuth';
 import { useLedger } from '../components/ledgerContext';
-import { Slip, SlipRow } from '../components/Slip';
+import { Slip, SlipBudgetRow, SlipRow } from '../components/Slip';
 import { NumericKeypad } from '../components/NumericKeypad';
 import { TransactionDialog } from '../components/TransactionDialog';
 import {
   createTransaction,
   fetchCategories,
+  fetchCategoryGroups,
+  fetchEffectiveBudgets,
   fetchTransactionsRange,
 } from '../lib/api';
 import {
@@ -109,6 +111,12 @@ export const Home: React.FC = () => {
   const monthStart = getMonthStartStr(now.getFullYear(), now.getMonth());
   const monthEnd = getMonthEndStr(now.getFullYear(), now.getMonth());
 
+  const { data: groups = [] } = useQuery({
+    queryKey: ['category_groups', currentLedger?.id],
+    queryFn: () => fetchCategoryGroups(currentLedger!.id),
+    enabled: Boolean(currentLedger?.id),
+  });
+
   const { data: categories = [], isLoading: loadingCategories } = useQuery({
     queryKey: ['categories', currentLedger?.id],
     queryFn: () => fetchCategories(currentLedger!.id),
@@ -118,6 +126,12 @@ export const Home: React.FC = () => {
   const { data: monthTransactions = [], isLoading: loadingTransactions } = useQuery({
     queryKey: ['transactions', currentLedger?.id, monthStart, monthEnd],
     queryFn: () => fetchTransactionsRange(currentLedger!.id, monthStart, monthEnd),
+    enabled: Boolean(currentLedger?.id),
+  });
+
+  const { data: monthBudgets = [] } = useQuery({
+    queryKey: ['budgets', currentLedger?.id, monthStart],
+    queryFn: () => fetchEffectiveBudgets(currentLedger!.id, monthStart),
     enabled: Boolean(currentLedger?.id),
   });
 
@@ -158,6 +172,65 @@ export const Home: React.FC = () => {
         .reduce((sum, tx) => sum + tx.amount, 0),
     [todayTransactions],
   );
+
+  const budgetDisplayItems = useMemo(() => {
+    const groupMap = new Map(groups.map((g) => [g.id, g]));
+    const catMap = new Map(categories.map((c) => [c.id, c]));
+    let totalExpense = 0;
+    const byGroup = new Map<string, number>();
+    const byCat = new Map<string, number>();
+
+    for (const tx of monthTransactions) {
+      if (tx.kind !== 'expense') continue;
+      totalExpense += tx.amount;
+      if (tx.group_id) {
+        byGroup.set(tx.group_id, (byGroup.get(tx.group_id) ?? 0) + tx.amount);
+      }
+      byCat.set(tx.category_id, (byCat.get(tx.category_id) ?? 0) + tx.amount);
+    }
+
+    return monthBudgets
+      .map((b) => {
+        if (!b.group_id && !b.category_id) {
+          return {
+            id: b.id,
+            name: '總預算',
+            used: totalExpense,
+            budget: b.amount,
+            color: 'var(--accent)',
+            order: 0,
+          };
+        }
+        if (b.group_id) {
+          const g = groupMap.get(b.group_id);
+          return {
+            id: b.id,
+            name: g?.name ?? '群組',
+            used: byGroup.get(b.group_id) ?? 0,
+            budget: b.amount,
+            color: g ? getGroupCssVar(g.color) : 'var(--g8)',
+            order: 1,
+          };
+        }
+        const c = b.category_id ? catMap.get(b.category_id) : undefined;
+        return {
+          id: b.id,
+          name: c?.name ?? '分類',
+          used: b.category_id ? byCat.get(b.category_id) ?? 0 : 0,
+          budget: b.amount,
+          color: c ? getGroupCssVar(c.group.color) : 'var(--g8)',
+          order: 2,
+        };
+      })
+      .sort((a, b) => a.order - b.order);
+  }, [monthBudgets, monthTransactions, groups, categories]);
+
+  const budgetMaxScale = useMemo(
+    () => budgetDisplayItems.reduce((m, i) => Math.max(m, i.budget, i.used), 1),
+    [budgetDisplayItems],
+  );
+
+  const totalBudgetItem = budgetDisplayItems.find((b) => b.order === 0);
 
   const hasOperator = /[+-]/.test(amountExpr);
   const evaluatedAmount = Number(evaluateExpression(amountExpr) || '0');
@@ -487,14 +560,33 @@ export const Home: React.FC = () => {
         {/* Right Column (Desktop >=1024px): Simplified Essentials Overview */}
         <div className="desktop-right-column">
           <Slip
-            title={`${monthLabel}預算`}
-            emptyText="預算功能將於下一步開放"
+            title={
+              totalBudgetItem
+                ? `${monthLabel}預算 · ${
+                    totalBudgetItem.used > totalBudgetItem.budget
+                      ? `超支 ${formatAmount(totalBudgetItem.used - totalBudgetItem.budget)}`
+                      : `剩餘 ${formatAmount(totalBudgetItem.budget - totalBudgetItem.used)}`
+                  }`
+                : `${monthLabel}預算`
+            }
+            emptyText="尚未設定本月預算"
             headerRight={
               <Link to="/budgets" className="sheet-header-link">
                 管理預算
               </Link>
             }
-          />
+          >
+            {budgetDisplayItems.map((item) => (
+              <SlipBudgetRow
+                key={item.id}
+                name={item.name}
+                used={item.used}
+                budget={item.budget}
+                maxScale={budgetMaxScale}
+                color={item.color}
+              />
+            ))}
+          </Slip>
 
           <Slip
             title="最近交易"

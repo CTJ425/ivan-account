@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/useAuth';
 import { Slip } from '../components/Slip';
+import { checkIsAdmin } from '../lib/api';
 import { useTheme, type ThemePreference } from '../lib/theme';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -10,11 +12,32 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'auto', label: '自動' },
 ];
 
+const ChevronIcon: React.FC = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="settings-chevron"
+    aria-hidden="true"
+  >
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const { preference, setPreference, systemTheme } = useTheme();
+
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ['is_admin', user?.id],
+    queryFn: checkIsAdmin,
+    enabled: Boolean(user?.id),
+  });
 
   const handleSignOut = async () => {
     try {
@@ -67,32 +90,23 @@ export const Settings: React.FC = () => {
       >
         <Link to="/settings/categories" className="settings-item-row">
           <span>分類管理</span>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="settings-chevron"
-            aria-hidden="true"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ChevronIcon />
         </Link>
+
+        <Link to="/settings/ledgers" className="settings-item-row">
+          <span>帳本與成員</span>
+          <ChevronIcon />
+        </Link>
+
+        {isAdmin && (
+          <Link to="/settings/whitelist" className="settings-item-row">
+            <span>白名單管理</span>
+            <ChevronIcon />
+          </Link>
+        )}
 
         <button type="button" className="settings-item-row" disabled>
           <span>週期性項目</span>
-          <span className="slip-note">即將推出</span>
-        </button>
-
-        <button type="button" className="settings-item-row" disabled>
-          <span>帳本與成員</span>
-          <span className="slip-note">即將推出</span>
-        </button>
-
-        <button type="button" className="settings-item-row" disabled>
-          <span>白名單</span>
           <span className="slip-note">即將推出</span>
         </button>
 
