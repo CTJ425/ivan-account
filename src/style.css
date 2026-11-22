@@ -2128,6 +2128,190 @@ button, input, select, textarea {
   gap: 8px;
 }
 
+/* Charts Page */
+.charts-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.chart-section-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.donut-chart-wrap {
+  padding: 20px 16px;
+  display: flex;
+  justify-content: center;
+  border-bottom: 1px solid var(--rule);
+}
+
+.donut-svg {
+  width: 200px;
+  height: 200px;
+}
+
+.donut-slice-clickable {
+  cursor: pointer;
+}
+
+.donut-center-label {
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--ink-2);
+}
+
+.donut-center-val {
+  font-size: 16px;
+  font-weight: 700;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.line-chart-wrap {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.line-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-grid-line {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.chart-axis-text {
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-budget-line {
+  stroke: var(--over);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.chart-budget-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--over);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-line-expense {
+  stroke: var(--accent);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-line-income {
+  stroke: var(--income);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-dot-expense {
+  fill: var(--accent);
+}
+
+.chart-dot-income {
+  fill: var(--income);
+}
+
+.chart-legend-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.legend-expense {
+  background-color: var(--accent);
+}
+
+.legend-income {
+  background-color: var(--income);
+}
+
+.chart-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.chart-data-table th,
+.chart-data-table td {
+  padding: 10px 16px;
+  text-align: left;
+  border-top: 1px solid var(--rule);
+}
+
+.chart-data-table thead th {
+  background-color: var(--surface-sub);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+  border-top: none;
+}
+
+.chart-data-table .num-col {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.table-row-clickable:hover {
+  background-color: var(--surface-sub);
+}
+
+.table-drill-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.table-label-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drill-arrow {
+  color: var(--ink-2);
+  font-weight: 700;
+}
+
 /* Forced Colors Mode Support */
 @media (forced-colors: active) {
   .side-nav-link[aria-current="page"],
