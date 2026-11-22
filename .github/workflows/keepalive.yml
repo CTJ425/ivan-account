@@ -1,0 +1,28 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    # Run every 3 days at 02:15 UTC to prevent Supabase Free tier 7-day inactivity pause
+    - cron: '15 2 */3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keepalive:
+    name: Ping Supabase REST endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ping Supabase
+        run: |
+          set -euo pipefail
+          source .env
+          status=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${VITE_SUPABASE_PUBLISHABLE_KEY}" \
+            "${VITE_SUPABASE_URL}/rest/v1/")
+          echo "Supabase REST ping HTTP status: ${status}"
+          test "${status}" -lt 500

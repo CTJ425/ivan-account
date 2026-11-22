@@ -1,0 +1,17 @@
+{
+  "name": "個人記帳",
+  "short_name": "個人記帳",
+  "description": "家庭與個人日常記帳",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3F6FA",
+  "theme_color": "#152942",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

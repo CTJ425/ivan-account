@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/useAuth';
+import { useLedger } from '../components/ledgerContext';
 import { Slip } from '../components/Slip';
-import { checkIsAdmin } from '../lib/api';
+import { checkIsAdmin, fetchAllLedgerTransactions } from '../lib/api';
+import { buildTransactionsCsv, downloadCsvFile } from '../lib/csv';
+import { toLocalDateStr } from '../lib/format';
 import { useTheme, type ThemePreference } from '../lib/theme';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -29,8 +32,11 @@ const ChevronIcon: React.FC = () => (
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
+  const { currentLedger, isOffline } = useLedger();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
   const { preference, setPreference, systemTheme } = useTheme();
 
   const { data: isAdmin = false } = useQuery({
@@ -38,6 +44,23 @@ export const Settings: React.FC = () => {
     queryFn: checkIsAdmin,
     enabled: Boolean(user?.id),
   });
+
+  const handleExportCsv = async () => {
+    if (!currentLedger) return;
+    try {
+      setExporting(true);
+      setExportMsg(null);
+      const rows = await fetchAllLedgerTransactions(currentLedger.id);
+      const csv = buildTransactionsCsv(rows);
+      const safeName = currentLedger.name.replace(/[/\\?%*:|"<>]/g, '_');
+      downloadCsvFile(`${safeName}-${toLocalDateStr(new Date())}.csv`, csv);
+      setExportMsg(`已匯出「${currentLedger.name}」共 ${rows.length} 筆交易。`);
+    } catch (err) {
+      setExportMsg(err instanceof Error ? err.message : '匯出 CSV 失敗');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -93,6 +116,11 @@ export const Settings: React.FC = () => {
           <ChevronIcon />
         </Link>
 
+        <Link to="/settings/recurring" className="settings-item-row">
+          <span>週期性項目</span>
+          <ChevronIcon />
+        </Link>
+
         <Link to="/settings/ledgers" className="settings-item-row">
           <span>帳本與成員</span>
           <ChevronIcon />
@@ -105,14 +133,16 @@ export const Settings: React.FC = () => {
           </Link>
         )}
 
-        <Link to="/settings/recurring" className="settings-item-row">
-          <span>週期性項目</span>
-          <ChevronIcon />
-        </Link>
-
-        <button type="button" className="settings-item-row" disabled>
-          <span>匯出 CSV</span>
-          <span className="slip-note">即將推出</span>
+        <button
+          type="button"
+          className="settings-item-row"
+          onClick={handleExportCsv}
+          disabled={!currentLedger || exporting || isOffline}
+        >
+          <span>{exporting ? '匯出中...' : '匯出 CSV'}</span>
+          <span className="slip-note">
+            {currentLedger ? `${currentLedger.name} · UTF-8` : '載入中'}
+          </span>
         </button>
 
         <button
@@ -138,6 +168,13 @@ export const Settings: React.FC = () => {
           </svg>
         </button>
       </Slip>
+
+      {exportMsg && (
+        <div className="workspace-status-bar" role="status">
+          <span className="status-dot" aria-hidden="true" />
+          <p className="demo-banner">{exportMsg}</p>
+        </div>
+      )}
 
       <p className="settings-version-line">版本 v{__APP_VERSION__}</p>
     </div>
