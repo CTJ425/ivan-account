@@ -47,6 +47,7 @@ export const Slip: React.FC<SlipProps> = ({
 export interface SlipRowProps {
   category: string;
   note?: string;
+  meta?: string;
   amount: number | string;
   groupColor?: string;
   isIncome?: boolean;
@@ -57,6 +58,7 @@ export interface SlipRowProps {
 export const SlipRow: React.FC<SlipRowProps> = ({
   category,
   note,
+  meta,
   amount,
   groupColor,
   isIncome = false,
@@ -79,6 +81,7 @@ export const SlipRow: React.FC<SlipRowProps> = ({
           />
         )}
         <span className="slip-category">{category}</span>
+        {meta && <span className="slip-meta-tag">{meta}</span>}
         {note && <span className="slip-note">{note}</span>}
       </div>
 
@@ -123,40 +126,49 @@ export const SlipBudgetRow: React.FC<SlipBudgetRowProps> = ({
   color,
 }) => {
   const isOver = used > budget;
+  const isWarn = !isOver && budget > 0 && used / budget >= 0.8;
   const overAmount = used - budget;
+  const remaining = Math.max(0, budget - used);
 
-  const budgetPct = Math.min(100, Math.max(0, (budget / maxScale) * 100));
-  const usedPct = Math.min(100, Math.max(0, (Math.min(used, budget) / maxScale) * 100));
+  const safeMax = Math.max(maxScale, budget, used, 1);
+  const budgetPct = Math.min(100, Math.max(0, (budget / safeMax) * 100));
+  const usedPct = Math.min(100, Math.max(0, (Math.min(used, budget) / safeMax) * 100));
   const overPct = isOver
-    ? Math.min(100 - budgetPct, Math.max(0, (overAmount / maxScale) * 100))
+    ? Math.min(100 - budgetPct, Math.max(0, (overAmount / safeMax) * 100))
     : 0;
 
+  const totalPct = Math.max(0.5, budgetPct + overPct);
+
   return (
-    <div className={`slip-budget-row ${isOver ? 'is-over' : ''}`}>
+    <div className={`slip-budget-row ${isOver ? 'is-over' : isWarn ? 'is-warn' : ''}`}>
       <div className="slip-budget-header">
         <span className="slip-budget-name">{name}</span>
-        <span className={`slip-budget-val ${isOver ? 'slip-val-over' : ''}`}>
+        <span
+          className={`slip-budget-val ${
+            isOver ? 'slip-val-over' : isWarn ? 'slip-val-warn' : ''
+          }`}
+        >
           {isOver
-            ? `超支 ${formatAmount(overAmount)}`
-            : `已用 ${formatAmount(used)} / ${formatAmount(budget)}`}
+            ? `超支 ${formatAmount(overAmount)}（已用 ${formatAmount(used)} / ${formatAmount(budget)}）`
+            : `剩餘 ${formatAmount(remaining)} · 已用 ${formatAmount(used)} / ${formatAmount(budget)}`}
         </span>
       </div>
 
-      <div className="slip-bar-container" style={{ width: `${budgetPct + overPct}%` }}>
+      <div className="slip-bar-container" style={{ width: `${totalPct}%` }}>
         <div
           className="slip-bar-used"
           style={{
             width: isOver
-              ? `${(budgetPct / (budgetPct + overPct)) * 100}%`
-              : `${(usedPct / budgetPct) * 100}%`,
-            backgroundColor: color,
+              ? `${(budgetPct / totalPct) * 100}%`
+              : `${(usedPct / totalPct) * 100}%`,
+            backgroundColor: isWarn ? 'var(--warn)' : color,
           }}
         />
         {!isOver && (
           <div
             className="slip-bar-remaining"
             style={{
-              width: `${((budgetPct - usedPct) / budgetPct) * 100}%`,
+              width: `${((budgetPct - usedPct) / totalPct) * 100}%`,
             }}
           />
         )}
@@ -164,7 +176,7 @@ export const SlipBudgetRow: React.FC<SlipBudgetRowProps> = ({
           <div
             className="slip-bar-over"
             style={{
-              width: `${(overPct / (budgetPct + overPct)) * 100}%`,
+              width: `${(overPct / totalPct) * 100}%`,
             }}
           />
         )}

@@ -1,29 +1,13 @@
 import { useOutletContext } from 'react-router-dom';
-
-export type LedgerId = 'personal' | 'shared';
-
-export interface LedgerInfo {
-  id: LedgerId;
-  name: string;
-  scopeLabel: string;
-}
-
-export const LEDGERS: Record<LedgerId, LedgerInfo> = {
-  personal: {
-    id: 'personal',
-    name: '個人帳本',
-    scopeLabel: '個人私密',
-  },
-  shared: {
-    id: 'shared',
-    name: '家庭',
-    scopeLabel: '家庭共用',
-  },
-};
+import type { Ledger } from '../lib/types';
 
 export interface LedgerOutletContext {
-  currentLedger: LedgerInfo;
-  setLedgerId: (id: LedgerId) => void;
+  ledgers: Ledger[];
+  currentLedger: Ledger | null;
+  setLedgerId: (id: string) => void;
+  isLoadingLedgers: boolean;
+  ledgerError: string | null;
+  isOffline: boolean;
 }
 
 export const useLedger = (): LedgerOutletContext => {

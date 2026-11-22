@@ -1,8 +1,12 @@
 import React, { Suspense, useState, useRef, useEffect, useId } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LEDGERS, type LedgerId, type LedgerInfo } from './ledgerContext';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/useAuth';
+import { fetchLedgers } from '../lib/api';
+import type { Ledger } from '../lib/types';
 import { useTheme, type ThemePreference } from '../lib/theme';
+
+const ACTIVE_LEDGER_STORAGE_KEY = 'active-ledger-id';
 
 const LoadingFallback: React.FC = () => (
   <div className="phone-container">
@@ -127,12 +131,14 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 ];
 
 interface LedgerSwitcherProps {
-  currentLedger: LedgerInfo;
-  onSelect: (id: LedgerId) => void;
+  ledgers: Ledger[];
+  currentLedger: Ledger | null;
+  onSelect: (id: string) => void;
   variant: 'rail' | 'topbar';
 }
 
 const LedgerSwitcher: React.FC<LedgerSwitcherProps> = ({
+  ledgers,
   currentLedger,
   onSelect,
   variant,
@@ -169,6 +175,12 @@ const LedgerSwitcher: React.FC<LedgerSwitcherProps> = ({
     };
   }, [open]);
 
+  const scopeLabel = currentLedger
+    ? currentLedger.kind === 'personal'
+      ? '個人私密'
+      : '共用帳本'
+    : '載入中';
+
   return (
     <div
       className={`ledger-switcher-container ledger-switcher-${variant}`}
@@ -181,16 +193,23 @@ const LedgerSwitcher: React.FC<LedgerSwitcherProps> = ({
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={`目前帳本：${currentLedger.name}（${currentLedger.scopeLabel}），點擊切換`}
+        disabled={ledgers.length === 0}
+        aria-label={
+          currentLedger
+            ? `目前帳本：${currentLedger.name}（${scopeLabel}），點擊切換`
+            : '載入帳本中'
+        }
       >
         <span className="ledger-btn-main">
           <span
-            className={`ledger-mark ledger-mark-${currentLedger.id}`}
+            className={`ledger-mark ledger-mark-${currentLedger?.kind ?? 'personal'}`}
             aria-hidden="true"
           />
-          <span className="ledger-btn-name">{currentLedger.name}</span>
-          {variant === 'rail' && (
-            <span className="ledger-btn-scope">{currentLedger.scopeLabel}</span>
+          <span className="ledger-btn-name">
+            {currentLedger?.name ?? '載入中...'}
+          </span>
+          {variant === 'rail' && currentLedger && (
+            <span className="ledger-btn-scope">{scopeLabel}</span>
           )}
         </span>
         <svg
@@ -213,8 +232,8 @@ const LedgerSwitcher: React.FC<LedgerSwitcherProps> = ({
           className={`ledger-popover ledger-popover-${variant}`}
           aria-label="切換帳本"
         >
-          {Object.values(LEDGERS).map((ledger) => {
-            const isSelected = ledger.id === currentLedger.id;
+          {ledgers.map((ledger) => {
+            const isSelected = ledger.id === currentLedger?.id;
             return (
               <button
                 key={ledger.id}
@@ -229,12 +248,14 @@ const LedgerSwitcher: React.FC<LedgerSwitcherProps> = ({
               >
                 <span className="ledger-option-left">
                   <span
-                    className={`ledger-mark ledger-mark-${ledger.id} ledger-mark-surface`}
+                    className={`ledger-mark ledger-mark-${ledger.kind} ledger-mark-surface`}
                     aria-hidden="true"
                   />
                   <span className="ledger-option-text">
                     <span className="ledger-option-name">{ledger.name}</span>
-                    <span className="ledger-option-scope">{ledger.scopeLabel}</span>
+                    <span className="ledger-option-scope">
+                      {ledger.kind === 'personal' ? '個人私密' : '家庭共用'}
+                    </span>
                   </span>
                 </span>
                 {isSelected && (
@@ -262,12 +283,59 @@ const LedgerSwitcher: React.FC<LedgerSwitcherProps> = ({
 };
 
 export const Layout: React.FC = () => {
-  const [ledgerId, setLedgerId] = useState<LedgerId>('personal');
-  const [signingOut, setSigningOut] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { preference, setPreference } = useTheme();
-  const currentLedger = LEDGERS[ledgerId];
+  const [signingOut, setSigningOut] = useState(false);
+  const [isOffline, setIsOffline] = useState(() =>
+    typeof navigator !== 'undefined' ? !navigator.onLine : false,
+  );
+  const [selectedLedgerId, setSelectedLedgerId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(ACTIVE_LEDGER_STORAGE_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
+
+  useEffect(() => {
+    const onOnline = () => setIsOffline(false);
+    const onOffline = () => setIsOffline(true);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
+  const {
+    data: ledgers = [],
+    isLoading: isLoadingLedgers,
+    error: ledgersErrObj,
+  } = useQuery({
+    queryKey: ['ledgers', user?.id],
+    queryFn: () => fetchLedgers(user!.id),
+    enabled: Boolean(user?.id),
+  });
+
+  const currentLedger =
+    ledgers.find((l) => l.id === selectedLedgerId) ?? ledgers[0] ?? null;
+
+  const handleSelectLedger = (id: string) => {
+    setSelectedLedgerId(id);
+    try {
+      localStorage.setItem(ACTIVE_LEDGER_STORAGE_KEY, id);
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  useEffect(() => {
+    if (currentLedger && currentLedger.id !== selectedLedgerId) {
+      handleSelectLedger(currentLedger.id);
+    }
+  }, [currentLedger, selectedLedgerId]);
 
   const handleSignOut = async () => {
     try {
@@ -281,8 +349,12 @@ export const Layout: React.FC = () => {
     }
   };
 
+  const ledgerKindClass = currentLedger?.kind ?? 'personal';
+  const ledgerError =
+    ledgersErrObj instanceof Error ? ledgersErrObj.message : null;
+
   return (
-    <div className={`app-shell ledger-state-${ledgerId}`}>
+    <div className={`app-shell ledger-state-${ledgerKindClass}`}>
       <a href="#main-content" className="skip-link visually-hidden">
         跳至主要內容
       </a>
@@ -294,8 +366,9 @@ export const Layout: React.FC = () => {
             <span className="brand-wordmark">個人記帳</span>
           </div>
           <LedgerSwitcher
+            ledgers={ledgers}
             currentLedger={currentLedger}
-            onSelect={setLedgerId}
+            onSelect={handleSelectLedger}
             variant="rail"
           />
         </div>
@@ -354,8 +427,9 @@ export const Layout: React.FC = () => {
         <div className="top-bar-inner">
           <span className="brand-wordmark">個人記帳</span>
           <LedgerSwitcher
+            ledgers={ledgers}
             currentLedger={currentLedger}
-            onSelect={setLedgerId}
+            onSelect={handleSelectLedger}
             variant="topbar"
           />
         </div>
@@ -363,8 +437,22 @@ export const Layout: React.FC = () => {
 
       {/* Main Workspace */}
       <main id="main-content" className="app-content" tabIndex={-1}>
+        {isOffline && (
+          <div className="offline-banner" role="alert">
+            目前處於離線狀態，請連線後再新增或更新資料
+          </div>
+        )}
         <Suspense fallback={<LoadingFallback />}>
-          <Outlet context={{ currentLedger, setLedgerId }} />
+          <Outlet
+            context={{
+              ledgers,
+              currentLedger,
+              setLedgerId: handleSelectLedger,
+              isLoadingLedgers,
+              ledgerError,
+              isOffline,
+            }}
+          />
         </Suspense>
       </main>
 

@@ -1,29 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../auth/useAuth';
 import { useLedger } from '../components/ledgerContext';
-import { Slip } from '../components/Slip';
+import { Slip, SlipRow } from '../components/Slip';
 import { NumericKeypad } from '../components/NumericKeypad';
+import { TransactionDialog } from '../components/TransactionDialog';
+import {
+  createTransaction,
+  fetchCategories,
+  fetchTransactionsRange,
+} from '../lib/api';
+import {
+  DAY_NAMES,
+  formatAmount,
+  formatDisplayDate,
+  formatShortDateWithDay,
+  getGroupCssVar,
+  getMonthEndStr,
+  getMonthStartStr,
+  toLocalDateStr,
+} from '../lib/format';
+import type { EntryKind, TransactionWithDetails } from '../lib/types';
 
-const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
 const MAX_DIGITS = 9;
 const MAX_AMOUNT = 999_999_999;
-
-const toLocalDateStr = (d: Date): string => {
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
-};
-
-const formatDisplayDate = (dateStr: string): string => {
-  if (dateStr === toLocalDateStr(new Date())) return '今天';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const [y, m, d] = parts;
-    const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
-    return `${m}/${d}（${DAY_NAMES[dateObj.getDay()]}）`;
-  }
-  return dateStr;
-};
 
 const evaluateExpression = (raw: string): string => {
   const cleaned = raw.replace(/[+-]+$/, '');
@@ -77,12 +78,20 @@ const formatExprDisplay = (raw: string): string => {
 };
 
 export const Home: React.FC = () => {
-  const { currentLedger } = useLedger();
-  const [kind, setKind] = useState<'expense' | 'income'>('expense');
+  const { user } = useAuth();
+  const { ledgers, currentLedger, isLoadingLedgers, ledgerError, isOffline } =
+    useLedger();
+  const queryClient = useQueryClient();
+
+  const [kind, setKind] = useState<EntryKind>('expense');
   const [amountExpr, setAmountExpr] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [date, setDate] = useState(() => toLocalDateStr(new Date()));
   const [note, setNote] = useState('');
   const [isTouchPointer, setIsTouchPointer] = useState(false);
+  const [newTxId, setNewTxId] = useState<string | null>(null);
+  const [editingTx, setEditingTx] = useState<TransactionWithDetails | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
@@ -94,10 +103,103 @@ export const Home: React.FC = () => {
   }, []);
 
   const now = new Date();
+  const todayStr = toLocalDateStr(now);
   const todayTitle = `${now.getMonth() + 1}/${now.getDate()}（${DAY_NAMES[now.getDay()]}）`;
   const monthLabel = `${now.getMonth() + 1} 月`;
+  const monthStart = getMonthStartStr(now.getFullYear(), now.getMonth());
+  const monthEnd = getMonthEndStr(now.getFullYear(), now.getMonth());
+
+  const { data: categories = [], isLoading: loadingCategories } = useQuery({
+    queryKey: ['categories', currentLedger?.id],
+    queryFn: () => fetchCategories(currentLedger!.id),
+    enabled: Boolean(currentLedger?.id),
+  });
+
+  const { data: monthTransactions = [], isLoading: loadingTransactions } = useQuery({
+    queryKey: ['transactions', currentLedger?.id, monthStart, monthEnd],
+    queryFn: () => fetchTransactionsRange(currentLedger!.id, monthStart, monthEnd),
+    enabled: Boolean(currentLedger?.id),
+  });
+
+  const activeCategories = useMemo(
+    () =>
+      categories.filter(
+        (c) => c.group.kind === kind && !c.archived_at && !c.group.archived_at,
+      ),
+    [categories, kind],
+  );
+
+  // Clear or auto-select valid category when switching ledger or kind
+  useEffect(() => {
+    if (activeCategories.length === 0) {
+      setSelectedCategoryId('');
+      return;
+    }
+    const exists = activeCategories.some((c) => c.id === selectedCategoryId);
+    if (!exists) {
+      setSelectedCategoryId(activeCategories[0].id);
+    }
+  }, [activeCategories, selectedCategoryId]);
+
+  const todayTransactions = useMemo(
+    () => monthTransactions.filter((tx) => tx.occurred_on === todayStr),
+    [monthTransactions, todayStr],
+  );
+
+  const recentTransactions = useMemo(
+    () => monthTransactions.slice(0, 12),
+    [monthTransactions],
+  );
+
+  const todayExpenseTotal = useMemo(
+    () =>
+      todayTransactions
+        .filter((tx) => tx.kind === 'expense')
+        .reduce((sum, tx) => sum + tx.amount, 0),
+    [todayTransactions],
+  );
 
   const hasOperator = /[+-]/.test(amountExpr);
+  const evaluatedAmount = Number(evaluateExpression(amountExpr) || '0');
+  const canSave =
+    Boolean(currentLedger) &&
+    Boolean(user) &&
+    Boolean(selectedCategoryId) &&
+    evaluatedAmount > 0 &&
+    !isOffline;
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentLedger || !user) throw new Error('尚未選擇帳本');
+      const finalAmt = Number(evaluateExpression(amountExpr));
+      if (!Number.isInteger(finalAmt) || finalAmt <= 0) {
+        throw new Error('請輸入大於 0 的金額');
+      }
+      if (!selectedCategoryId) {
+        throw new Error('請選擇分類');
+      }
+      return createTransaction({
+        ledger_id: currentLedger.id,
+        category_id: selectedCategoryId,
+        amount: finalAmt,
+        occurred_on: date,
+        note: note || null,
+        created_by: user.id,
+      });
+    },
+    onSuccess: (created) => {
+      setSubmitError(null);
+      setAmountExpr('');
+      setNote('');
+      setNewTxId(created.id);
+      void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      void queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      void queryClient.invalidateQueries({ queryKey: ['charts'] });
+    },
+    onError: (err) => {
+      setSubmitError(err instanceof Error ? err.message : '儲存失敗，請再試一次');
+    },
+  });
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9+-]/g, '');
@@ -129,38 +231,42 @@ export const Home: React.FC = () => {
     if (hasOperator) {
       setAmountExpr((prev) => evaluateExpression(prev));
     }
+    if (!canSave || createMutation.isPending) return;
+    createMutation.mutate();
   };
+
+  const ledgerKind = currentLedger?.kind ?? 'personal';
+  const ledgerName = currentLedger?.name ?? '載入中...';
+  const ledgerScope =
+    currentLedger?.kind === 'shared' ? '家庭共用' : '個人私密';
 
   return (
     <div className="desktop-container">
       <h1 className="visually-hidden">快速記帳</h1>
 
-      <div className="workspace-status-bar" role="status">
-        <span className="status-dot" aria-hidden="true" />
-        <p className="demo-banner">尚未連接帳本，記帳功能將在下一版開放</p>
-      </div>
+      {ledgerError && (
+        <div className="workspace-status-bar status-error" role="alert">
+          <p className="demo-banner">載入帳本失敗：{ledgerError}</p>
+        </div>
+      )}
 
       <div className="desktop-home-grid">
         {/* Left Column: Quick-Entry Drafting Sheet */}
         <div className="desktop-left-column">
           <form
-            className={`entry-panel entry-ledger-${currentLedger.id}`}
+            className={`entry-panel entry-ledger-${ledgerKind}`}
             onSubmit={handleSubmit}
           >
             {/* Active Ledger Identity Strip */}
             <header className="entry-ledger-strip">
               <span className="entry-ledger-id">
                 <span
-                  className={`ledger-mark ledger-mark-${currentLedger.id} ledger-mark-surface`}
+                  className={`ledger-mark ledger-mark-${ledgerKind} ledger-mark-surface`}
                   aria-hidden="true"
                 />
-                <span className="entry-ledger-name">
-                  記入：{currentLedger.name}
-                </span>
+                <span className="entry-ledger-name">記入：{ledgerName}</span>
               </span>
-              <span className="entry-ledger-scope">
-                {currentLedger.scopeLabel}
-              </span>
+              <span className="entry-ledger-scope">{ledgerScope}</span>
             </header>
 
             <div className="entry-panel-body">
@@ -205,13 +311,57 @@ export const Home: React.FC = () => {
                 />
               </div>
 
-              {/* Category Area: architectural empty state until M2 connects categories */}
-              <div className="category-empty-frame">
-                <span className="category-empty-title">尚無分類</span>
-                <span className="category-empty-sub">
-                  連接帳本後即可點選常用分類
-                </span>
-              </div>
+              {/* Category Selection Grid */}
+              {isLoadingLedgers || loadingCategories ? (
+                <div className="category-empty-frame">
+                  <span className="category-empty-sub">載入分類中...</span>
+                </div>
+              ) : activeCategories.length === 0 ? (
+                <div className="category-empty-frame">
+                  <span className="category-empty-title">尚無分類</span>
+                  <Link to="/settings/categories" className="sheet-header-link">
+                    前往新增分類
+                  </Link>
+                </div>
+              ) : (
+                <div className="category-grid" role="group" aria-label="選擇分類">
+                  {activeCategories.map((cat) => {
+                    const selected = cat.id === selectedCategoryId;
+                    const cssColor = getGroupCssVar(cat.group.color);
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        className={`category-card-btn ${selected ? 'selected' : ''}`}
+                        style={{ '--cat-color': cssColor } as React.CSSProperties}
+                        aria-pressed={selected}
+                        onClick={() => setSelectedCategoryId(cat.id)}
+                      >
+                        <span
+                          className="category-tile-chip"
+                          style={{ backgroundColor: cssColor }}
+                          aria-hidden="true"
+                        />
+                        {selected && (
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.25"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="category-check-icon"
+                            aria-hidden="true"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                        <span className="category-label">{cat.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Date and Note Row */}
               <div className="date-note-row">
@@ -276,9 +426,19 @@ export const Home: React.FC = () => {
                 onEvaluate={() => setAmountExpr((prev) => evaluateExpression(prev))}
               />
 
+              {submitError && (
+                <p className="form-error" role="alert">
+                  {submitError}
+                </p>
+              )}
+
               {/* Primary Save Action */}
-              <button type="submit" className="save-action-btn" disabled>
-                記一筆
+              <button
+                type="submit"
+                className="save-action-btn"
+                disabled={!canSave || createMutation.isPending}
+              >
+                {createMutation.isPending ? '儲存中...' : '記一筆'}
               </button>
             </div>
           </form>
@@ -287,13 +447,40 @@ export const Home: React.FC = () => {
           <div className="phone-only-section">
             <Slip
               title={`今日紀錄 · ${todayTitle}`}
-              emptyText="今天還沒有記錄"
+              emptyText={loadingTransactions ? '載入中...' : '今天還沒有記錄'}
               headerRight={
-                <Link to="/transactions" className="sheet-header-link">
-                  看全部明細
-                </Link>
+                <div className="sheet-header-right-group">
+                  {todayExpenseTotal > 0 && (
+                    <span className="slip-total">
+                      支出 {formatAmount(todayExpenseTotal)}
+                    </span>
+                  )}
+                  <Link to="/transactions" className="sheet-header-link">
+                    看全部明細
+                  </Link>
+                </div>
               }
-            />
+            >
+              {todayTransactions.map((tx) => (
+                <SlipRow
+                  key={tx.id}
+                  category={tx.category_name}
+                  note={tx.note ?? undefined}
+                  meta={
+                    tx.recurring_rule_id
+                      ? '週期'
+                      : ledgerKind === 'shared'
+                        ? tx.creator_name ?? undefined
+                        : undefined
+                  }
+                  amount={tx.amount}
+                  groupColor={getGroupCssVar(tx.group_color)}
+                  isIncome={tx.kind === 'income'}
+                  isNew={tx.id === newTxId}
+                  onClick={() => setEditingTx(tx)}
+                />
+              ))}
+            </Slip>
           </div>
         </div>
 
@@ -301,7 +488,7 @@ export const Home: React.FC = () => {
         <div className="desktop-right-column">
           <Slip
             title={`${monthLabel}預算`}
-            emptyText="尚未設定本月預算"
+            emptyText="預算功能將於下一步開放"
             headerRight={
               <Link to="/budgets" className="sheet-header-link">
                 管理預算
@@ -310,16 +497,40 @@ export const Home: React.FC = () => {
           />
 
           <Slip
-            title={`最近交易 · ${todayTitle}`}
-            emptyText="今天還沒有記錄"
+            title="最近交易"
+            emptyText={loadingTransactions ? '載入中...' : '本月還沒有記錄'}
             headerRight={
               <Link to="/transactions" className="sheet-header-link">
                 看全部明細
               </Link>
             }
-          />
+          >
+            {recentTransactions.map((tx) => (
+              <SlipRow
+                key={tx.id}
+                category={tx.category_name}
+                meta={
+                  tx.occurred_on === todayStr
+                    ? '今天'
+                    : formatShortDateWithDay(tx.occurred_on)
+                }
+                note={tx.note ?? undefined}
+                amount={tx.amount}
+                groupColor={getGroupCssVar(tx.group_color)}
+                isIncome={tx.kind === 'income'}
+                isNew={tx.id === newTxId}
+                onClick={() => setEditingTx(tx)}
+              />
+            ))}
+          </Slip>
         </div>
       </div>
+
+      <TransactionDialog
+        transaction={editingTx}
+        ledgers={ledgers}
+        onClose={() => setEditingTx(null)}
+      />
     </div>
   );
 };
